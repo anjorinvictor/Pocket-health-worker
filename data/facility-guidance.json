@@ -1,0 +1,29 @@
+{
+  "GREEN": {
+    "headline": "You can likely manage this at home for now.",
+    "steps": [
+      "Rest, stay hydrated, and monitor how you feel.",
+      "Use simple home care appropriate to your symptoms.",
+      "Recheck in 24–48 hours."
+    ],
+    "escalateIf": "If symptoms get worse, last longer than expected, or new symptoms appear, visit a clinic or doctor."
+  },
+  "YELLOW": {
+    "headline": "It's best to see a health worker soon.",
+    "steps": [
+      "Visit a Primary Health Centre (PHC), clinic, or pharmacy/doctor within the next 24–48 hours.",
+      "Write down your symptoms, when they started, and anything that makes them better or worse.",
+      "Take any current medications and their packs with you."
+    ],
+    "escalateIf": "If your condition worsens quickly or any emergency danger sign appears, go to the nearest hospital immediately."
+  },
+  "RED": {
+    "headline": "This may be an emergency – get help now.",
+    "steps": [
+      "Go to the nearest hospital or general hospital emergency department immediately.",
+      "If you can, arrange fast, safe transport or ask someone to help you get there.",
+      "Do not wait to see if it improves on its own."
+    ],
+    "escalateIf": "If the person becomes unresponsive, stops breathing, or is rapidly worsening, seek the fastest possible emergency help."
+  }
+}

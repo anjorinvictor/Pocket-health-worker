@@ -1,0 +1,15 @@
+[
+  { "id": "breathing", "label": "Difficulty breathing", "matchKeywords": ["can't breathe", "cannot breathe", "trouble breathing", "shortness of breath", "gasping", "choking"], "message": "Difficulty breathing can be life-threatening." },
+  { "id": "chest_pain", "label": "Chest pain or pressure", "matchKeywords": ["chest pain", "chest pressure", "chest tightness", "pain in my chest"], "message": "Chest pain may signal a heart or lung emergency." },
+  { "id": "unconscious", "label": "Fainting or unresponsiveness", "matchKeywords": ["fainted", "passed out", "unconscious", "won't wake up", "unresponsive", "collapsed"], "message": "Loss of consciousness needs urgent care." },
+  { "id": "seizure", "label": "Seizure or convulsions", "matchKeywords": ["seizure", "convulsion", "convulsing", "fitting", "jerking uncontrollably"], "message": "Seizures require emergency attention." },
+  { "id": "stroke", "label": "Possible stroke signs", "matchKeywords": ["face drooping", "slurred speech", "can't move one side", "sudden weakness", "numb on one side", "can't speak"], "message": "Sudden weakness, drooping, or slurred speech may be a stroke." },
+  { "id": "bleeding", "label": "Severe bleeding", "matchKeywords": ["heavy bleeding", "won't stop bleeding", "bleeding a lot", "losing a lot of blood"], "message": "Severe bleeding is an emergency." },
+  { "id": "coughing_blood", "label": "Coughing or vomiting blood", "matchKeywords": ["coughing blood", "vomiting blood", "throwing up blood", "blood in vomit"], "message": "Coughing or vomiting blood needs urgent care." },
+  { "id": "meningitis", "label": "Stiff neck with high fever", "matchKeywords": ["stiff neck and fever", "stiff neck high fever", "neck stiffness fever"], "message": "A stiff neck with high fever can be serious." },
+  { "id": "allergic", "label": "Severe allergic reaction", "matchKeywords": ["swelling face", "swollen throat", "throat closing", "can't swallow", "severe allergic"], "message": "Swelling of the face or throat is a medical emergency." },
+  { "id": "dehydration", "label": "Severe dehydration", "matchKeywords": ["not urinating", "no urine", "very dizzy can't stand", "severe dehydration", "sunken eyes"], "message": "Severe dehydration needs urgent treatment." },
+  { "id": "poisoning", "label": "Poisoning or overdose", "matchKeywords": ["poisoned", "overdose", "swallowed poison", "took too many pills"], "message": "Suspected poisoning or overdose is an emergency." },
+  { "id": "infant", "label": "Seriously ill infant", "matchKeywords": ["baby not feeding", "baby very weak", "baby blue lips", "newborn fever", "baby won't wake", "infant difficulty breathing"], "message": "A young baby with these signs needs immediate care." },
+  { "id": "pregnancy", "label": "Pregnancy danger signs", "matchKeywords": ["pregnant heavy bleeding", "severe abdominal pain pregnant", "severe headache pregnant", "blurred vision pregnant", "baby not moving"], "message": "These pregnancy signs need urgent attention." }
+]

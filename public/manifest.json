@@ -1,0 +1,17 @@
+{
+  "name": "Pocket Health Worker",
+  "short_name": "Pocket Health",
+  "description": "Stateless safety-first triage assistant (SDG 3)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
