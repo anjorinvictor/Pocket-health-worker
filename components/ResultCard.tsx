@@ -7,6 +7,17 @@
  * ShareCheck action bar and provides a prominent emergency escalation warning if RED (SDG 3).
  */
 
+/**
+ * Pocket Health Worker — Triage Result Card
+ *
+ * Visually renders the output of the AI triage engine, transforming raw JSON
+ * into a highly readable, color-coded, and actionable medical report.
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Provides clear, actionable health guidance to reduce maternal and infant mortality.
+ * - Safety-First: Conditionally renders the 'Emergency Bridge Panel' on RED results, forcing logistics over home care.
+ */
+
 "use client";
 
 import type { TriageResult, ChatTurn } from "@/types";

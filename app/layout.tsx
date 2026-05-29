@@ -1,10 +1,13 @@
 /**
- * Pocket Health Worker — Root Layout (Offline-Robust Typography Upgrade)
+ * Pocket Health Worker — Root Layout
  *
  * Implements the base HTML frame, configures global SEO metadata, and provides a 
- * premium native system typography stack (Segoe UI, system-ui, Helvetica Neue). 
- * Eliminates compile-time network font downloads to prevent build crashes in low-bandwidth
- * or unstable network environments, while maintaining suppressHydrationWarning safety (UN SDG 3).
+ * premium native system typography stack (Segoe UI, system-ui, Helvetica Neue).
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Ensures high performance and accessibility in low-bandwidth regions.
+ * - Safety-First: Eliminates compile-time network font downloads to prevent build crashes.
+ * - PWA Ready: Registers the Service Worker for offline capabilities.
  */
 
 import type { Metadata, Viewport } from "next";

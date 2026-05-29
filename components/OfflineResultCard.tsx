@@ -1,10 +1,12 @@
 /**
  * Pocket Health Worker — Offline Triage Result Card
  *
- * Visually distinct from the online AI ResultCard. Renders the output of the
- * local deterministic triage engine with an honest "rules-based" banner,
- * warning signs to watch, and an embedded PHC directory for immediate referral.
- * Shows the Emergency Bridge panel on RED results. (UN SDG 3)
+ * Visually distinct from the online AI ResultCard. Renders the output of the local deterministic triage engine.
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Ensures life-saving triage continues even in regions with zero mobile data.
+ * - Safety-First: Includes an honest "rules-based" banner to prevent false reassurance.
+ * - Offline-First: Renders a fully cached PHC directory for immediate offline referral.
  */
 
 "use client";

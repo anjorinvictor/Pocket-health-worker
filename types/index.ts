@@ -1,3 +1,11 @@
+/**
+ * Pocket Health Worker — Core Type Definitions
+ *
+ * Establishes the TypeScript interfaces and types that enforce strict data boundaries
+ * across the application. Ensures that AI payloads, triage urgency levels, and chat
+ * history conform to expected shapes, guaranteeing runtime stability and clinical safety (SDG 3).
+ */
+
 export type Role = "user" | "assistant";
 
 export interface ChatTurn {

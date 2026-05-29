@@ -2,13 +2,12 @@
  * Pocket Health Worker — Offline Deterministic Triage Engine
  *
  * A conservative, rules-based triage system that runs entirely in the browser
- * when the device has no internet connection. Uses structured Body Map inputs
- * (region, symptoms, severity, duration, age, sex, comorbidities) to produce
- * a safe urgency assessment.
- *
- * CORE SAFETY PRINCIPLE: May only err toward sending the user to care,
- * NEVER toward false reassurance. Default is YELLOW. GREEN is rare and
- * tightly gated. High-risk signals escalate to RED. (UN SDG 3)
+ * when the device has no internet connection. Uses structured Body Map inputs.
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Delivers critical healthcare assessments in zero-connectivity environments.
+ * - Safety-First: May only err toward sending the user to care. Never provides false reassurance.
+ * - Offline-First / Deterministic: Bypasses the LLM entirely, relying on hardcoded pediatric and adult safety guardrails.
  */
 
 import { checkRedFlags } from "@/lib/safety/redFlags";

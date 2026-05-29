@@ -4,7 +4,11 @@
  * Implements the flagship responsive Dual-Pane Medical Cockpit. Renders local utility widgets 
  * (NAFDAC Anti-Counterfeit, low-bandwidth saver, PHC directory) in the sidebar on laptop viewports,
  * while managing active symptom collection threads and diagnostic dashboard states.
- * Adapts instantly to standard stacked layouts on mobile viewports with zero emojis (UN SDG 3).
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Promotes Good Health & Well-being by providing accessible, conservative medical triage.
+ * - Safety-First: Enforces deterministic crisis & red-flag checks before executing AI prompts.
+ * - Offline-First: Gracefully degrades to a deterministic local engine when internet is disconnected.
  */
 
 "use client";

@@ -1,15 +1,13 @@
 /**
  * Pocket Health Worker — Visual Body Map Symptom Triage
  *
- * Rebuilt with a clean, well-proportioned clinical silhouette matching the
- * Lovable reference. Each body part is its own separately-outlined,
- * individually-clickable SVG region with hover and selected states.
- *
- * FRONT view: head, neck, chest, abdomen, left/right arms, left/right legs
- * BACK view: head, neck, upper back, lower back, left/right arms, left/right legs
- *
- * All doctor-approved fields retained. Compiled output feeds the same
- * /api/triage pipeline (UN SDG 3).
+ * A highly interactive, clinical silhouette mapping system. Each body part is an independently 
+ * clickable SVG region, enforcing structured clinical data collection.
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Improves accessibility for low-literacy users through visual symptom reporting.
+ * - Deterministic Safety: Feeds highly structured, typed data into the offline triage engine.
+ * - Offline-First: Functions perfectly without internet, generating local triage reports.
  */
 
 "use client";

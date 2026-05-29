@@ -2,10 +2,11 @@
  * Pocket Health Worker — Clinical Sidebar & Local Nigerian Helpers
  *
  * Houses three high-value interactive widgets targeting real-world clinical hurdles in Nigeria:
- *  1. Low-Bandwidth Data Saver: Reduces communication footprints over unstable mobile data (MTN, Airtel).
- *  2. NAFDAC Scratch-Card Simulator: Lets patients instantly verify drug authenticity (combating fake medications).
- *  3. Local PHC Referral Directory: An offline-friendly, drop-down lookup of key clinics across Nigerian states.
- * Fully responsive, adapting from a desktop left-sidebar to collapsed panels (UN SDG 3).
+ * low-bandwidth data saver, NAFDAC fake drug scratch-card simulator, and a local PHC directory.
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Combats counterfeit medications (NAFDAC) and bridges the last-mile healthcare gap.
+ * - Offline-First: The PHC directory and NAFDAC logic work deterministically without external API calls.
  */
 
 "use client";

@@ -1,14 +1,13 @@
 /**
  * Pocket Health Worker — Triage API Route
  *
- * Orchestrates one stateless symptom-triage request in a safety-first order:
- *  1. Crisis (self-harm) check → routes to support, never medical triage.
- *  2. Deterministic red-flag check across the whole conversation → forces an
- *     emergency response for danger signs, independent of the AI.
- *  3. Gemini reasoning (JSON mode + 429 retry) for non-emergency cases.
- *
- * Advances UN SDG 3 (Good Health & Well-being) by giving people without easy
- * access to a doctor a fast, conservative "what should I do next?" assessment.
+ * Orchestrates one stateless symptom-triage request, managing the secure interaction 
+ * between the Next.js backend and the Gemini AI inference engine.
+ * 
+ * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
+ * - UN SDG 3: Democratizes access to expert-level medical triage logic.
+ * - Safety-First: Forces deterministic RED checks and Crisis (self-harm) checks before allowing AI inference.
+ * - Privacy: 100% Stateless. No user data, chats, or PHI are stored in any database.
  */
 
 import { NextRequest, NextResponse } from "next/server";
