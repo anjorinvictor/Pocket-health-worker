@@ -1,11 +1,4 @@
-/**
- * Pocket Health Worker — Triage Result Card
- *
- * Overhauls the results presentation into a premium "Clinical Triage Report."
- * Visualizes the final assessment, reasoning, general possibilities, and disclaimer 
- * using sophisticated glassmorphism and clear grid layouts. Integrates our native 
- * ShareCheck action bar and provides a prominent emergency escalation warning if RED (SDG 3).
- */
+
 
 /**
  * Pocket Health Worker — Triage Result Card
@@ -65,10 +58,10 @@ export default function ResultCard({ result, history, onReset, onContinue }: Pro
                     <span>Call National Emergency: 112</span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" /></svg>
                   </a>
-                  <button type="button" className="flex items-center justify-between w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100 text-red-900 font-bold text-xs text-left cursor-pointer">
-                    <span>[LOCAL AMBULANCE LINE — developer to verify and insert]</span>
+                  <a href="tel:08003561308" className="flex items-center justify-between w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100 text-red-900 font-bold text-xs cursor-pointer">
+                    <span>LASAMBUS Ambulance: 0800 356 1308</span>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 flex-shrink-0"><path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" /></svg>
-                  </button>
+                  </a>
                 </div>
               </div>
 
@@ -83,10 +76,10 @@ export default function ResultCard({ result, history, onReset, onContinue }: Pro
               {/* Talk to someone now */}
               <div className="bg-white rounded-2xl p-4 border border-red-100 shadow-sm flex flex-col gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-red-400">Talk to someone now</p>
-                <button type="button" className="flex items-center justify-between w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100 text-red-900 font-bold text-xs text-left cursor-pointer">
-                  <span>[MEDICAL/EMERGENCY HOTLINE — developer to verify and insert]</span>
+                <a href="tel:08091116264" className="flex items-center justify-between w-full p-3 bg-red-50 hover:bg-red-100 transition-colors rounded-xl border border-red-100 text-red-900 font-bold text-xs cursor-pointer">
+                  <span>MANI Helpline: 0809 111 6264</span>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 flex-shrink-0"><path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" /></svg>
-                </button>
+                </a>
               </div>
             </div>
           </div>
