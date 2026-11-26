@@ -61,3 +61,22 @@ describe("checkRedFlags — mild complaints must NOT escalate", () => {
     });
   }
 });
+
+describe("checkRedFlags — combination rules (matchAll)", () => {
+  const cases: Array<[string, string]> = [
+    ["my 8 month old baby has high fever", "infant"],
+    ["Age Demographic: Infant (0-1). Symptom Indicators: Fever.", "infant"],
+    ["my pikin get fever since night", "infant"],
+    ["I am pregnant and bleeding", "pregnancy"],
+    ["Biological Sex & Pregnancy: Female (Pregnant). Patient Disclosures: some blood", "pregnancy"],
+    ["I am bleeding heavily", "bleeding"],
+  ];
+  for (const [text, id] of cases) {
+    it(`flags "${text}" → ${id}`, () => {
+      expect(checkRedFlags(text)?.id).toBe(id);
+    });
+  }
+  it("'Female (Not Pregnant)' + blood does not fire the pregnancy rule", () => {
+    expect(checkRedFlags("Female (Not Pregnant). small blood in stool")?.id).not.toBe("pregnancy");
+  });
+});

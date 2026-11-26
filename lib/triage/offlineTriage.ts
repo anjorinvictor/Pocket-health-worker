@@ -1,41 +1,25 @@
 /**
- * Pocket Health Worker — Offline Deterministic Triage Engine
+ * Pocket Health Worker — Deterministic Triage Engine (rules)
  *
- * A conservative, rules-based triage system that runs entirely in the browser
- * when the device has no internet connection. Uses structured Body Map inputs.
- * 
- * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
- * - UN SDG 3: Delivers critical healthcare assessments in zero-connectivity environments.
- * - Safety-First: May only err toward sending the user to care. Never provides false reassurance.
- * - Offline-First / Deterministic: Bypasses the LLM entirely, relying on hardcoded pediatric and adult safety guardrails.
+ * A conservative, rules-based triage system. It runs:
+ *  - in the browser when there is no signal (offline mode),
+ *  - in the browser when Data Saver is on and the answer would be an emergency anyway,
+ *  - on the server as a SAFETY FLOOR under every AI body-map result — the AI may raise
+ *    urgency above this, never lower it,
+ *  - as the fallback whenever the AI is unreachable or fails.
+ *
+ * It may only err toward sending the person to care. Never false reassurance.
  */
 
 import { checkRedFlags } from "@/lib/safety/redFlags";
-import type { UrgencyLevel } from "@/types";
+import { CONDITION, INFANT, PREGNANT } from "@/lib/triage/options";
+import type { RulesResult, StructuredInput } from "@/types";
 
-export interface OfflineTriageInput {
-  region: string;
-  symptoms: string[];
-  severity: "Mild" | "Moderate" | "Severe";
-  duration: "Today" | "Few days" | "Over a week";
-  ageGroup: string;
-  biologicalSex: string;
-  comorbidities: string[];
-  additionalText: string;
-}
+export type OfflineTriageInput = StructuredInput;
+export type OfflineTriageResult = RulesResult;
 
-export interface OfflineTriageResult {
-  urgencyLevel: UrgencyLevel;
-  headline: string;
-  details: string;
-  warningSignsToWatch: string[];
-  showEmergencyBridge: boolean;
-}
-
-/* ── High-risk region sets ─────────────────────────────────── */
-const HIGH_RISK_REGIONS = new Set([
-  "head", "chest", "abdomen", "neck",
-]);
+/* ── Region sets ───────────────────────────────────────────── */
+const HIGH_RISK_REGIONS = new Set(["head", "chest", "abdomen", "neck"]);
 
 const LOW_RISK_REGIONS = new Set([
   "left_arm", "right_arm", "left_hand", "right_hand",
@@ -44,159 +28,115 @@ const LOW_RISK_REGIONS = new Set([
 ]);
 
 /* ── Vulnerable groups ─────────────────────────────────────── */
-function isVulnerableAge(ageGroup: string): boolean {
-  return [
-    "Infant (0-1)",
-    "Toddler (1-3)",
-    "Senior (Over 60)",
-  ].includes(ageGroup);
-}
+const VULNERABLE_AGES = new Set([INFANT, "Toddler (1-3)", "Senior (Over 60)"]);
+const ADULT_AGES = new Set(["Adult (18-40)", "Middle-aged (41-60)"]);
 
-function isInfant(ageGroup: string): boolean {
-  return ageGroup === "Infant (0-1)";
-}
+const isVulnerableAge = (age: string) => VULNERABLE_AGES.has(age);
+const isInfant = (age: string) => age === INFANT;
+const isPregnant = (sex: string) => sex === PREGNANT;
+const isImmunocompromised = (c: string[]) => c.includes(CONDITION.immune);
+const hasConcerningComorbidity = (c: string[]) => c.length > 0;
 
-function isPregnant(sex: string): boolean {
-  return sex === "Female (Pregnant)";
-}
-
-function isImmunocompromised(comorbidities: string[]): boolean {
-  const flags = ["HIV/AIDS", "Cancer", "Autoimmune disease", "Immunosuppressant therapy"];
-  return comorbidities.some((c) => flags.includes(c));
-}
-
-function hasConcerningComorbidity(comorbidities: string[]): boolean {
-  const flags = [
-    "Diabetes", "HIV/AIDS", "Cancer", "Heart disease",
-    "Autoimmune disease", "Immunosuppressant therapy",
-    "Sickle cell disease", "Hypertension", "Asthma/COPD",
-  ];
-  return comorbidities.some((c) => flags.includes(c));
-}
-
-/* ── Infant danger-sign symptoms ───────────────────────────── */
-const INFANT_DANGER_SYMPTOMS = [
-  "sunken fontanelle",
-  "not feeding",
-  "refusal to feed",
-  "lethargy",
-  "lethargic",
-  "inconsolable crying",
-  "fever",
-  "high fever",
-  "trouble breathing",
-  "difficulty breathing",
-  "grunting",
-  "blue lips",
-  "won't wake",
+/* ── Danger-sign vocabularies (lower-case substrings) ──────── */
+const INFANT_DANGER_SIGNS = [
+  "sunken fontanelle", "not feeding", "refusal to feed", "lethargy", "lethargic",
+  "inconsolable crying", "fever", "trouble breathing", "difficulty breathing",
+  "breathing difficulty", "grunting", "blue lips", "won't wake", "stiff neck",
+  "non-blanching rash", "vomits everything",
 ];
 
-function infantHasDangerSign(symptoms: string[], additionalText: string): boolean {
-  const allText = [...symptoms, additionalText].join(" ").toLowerCase();
-  return INFANT_DANGER_SYMPTOMS.some((sign) => allText.includes(sign));
-}
+/** Pregnancy danger signs (WHO/FMOH antenatal danger signs, simplified). */
+const PREGNANCY_DANGER_SIGNS = [
+  "bleed", "blood", "vision issues", "blurring", "blurred", "severe headache",
+  "convuls", "seizure", "fits", "water broke", "baby not moving", "swollen face",
+  "breathing difficulty", "high fever",
+];
 
-/* ── Main offline triage function ──────────────────────────── */
+const textOf = (symptoms: string[], additionalText: string) =>
+  [...symptoms, additionalText].join(" ").toLowerCase();
+
+/* ── Main entry point ──────────────────────────────────────── */
 export function runOfflineTriage(input: OfflineTriageInput): OfflineTriageResult {
-  const {
-    region, symptoms, severity, duration,
-    ageGroup, biologicalSex, comorbidities, additionalText,
-  } = input;
+  const { region, symptoms, severity, duration, ageGroup, biologicalSex, comorbidities, additionalText } = input;
+  const allText = textOf(symptoms, additionalText);
 
-  // Step 0: Run red-flag keyword check on all text content
-  const allText = [...symptoms, additionalText].join(" ");
-  const redFlag = checkRedFlags(allText);
+  // 0. Hard red-flag phrases in anything the person entered.
+  const redFlag = checkRedFlags([...symptoms, additionalText].join(" "));
   if (redFlag) {
-    return {
-      urgencyLevel: "RED",
-      headline: "This may be an emergency — get help now.",
-      details: `${redFlag.message} Go to the nearest General Hospital Emergency Department immediately. Do not wait.`,
-      warningSignsToWatch: [],
-      showEmergencyBridge: true,
-    };
+    return makeRED(redFlag.message);
   }
 
-  // ─── STEP 1: RED checks ───────────────────────────────────
-  
-  // 1a. Severe severity in a high-risk region
+  // 1a. Infant with fever or any danger sign.
+  if (isInfant(ageGroup) && INFANT_DANGER_SIGNS.some((s) => allText.includes(s))) {
+    return makeRED("A baby under one year with these signs needs a health worker immediately.");
+  }
+
+  // 1b. Pregnancy danger signs.
+  if (isPregnant(biologicalSex) && PREGNANCY_DANGER_SIGNS.some((s) => allText.includes(s))) {
+    return makeRED("These are danger signs in pregnancy and need urgent care for mother and baby.");
+  }
+
+  // 1c. Severe symptoms in a critical area.
   if (severity === "Severe" && HIGH_RISK_REGIONS.has(region)) {
-    return makeRED("Severe symptoms in a critical area require urgent medical evaluation.");
+    return makeRED("Severe symptoms in this part of the body need urgent medical evaluation.");
   }
 
-  // 1b. Any severe symptom in a vulnerable group
-  if (severity === "Severe" && (isVulnerableAge(ageGroup) || isPregnant(biologicalSex) || isImmunocompromised(comorbidities))) {
-    return makeRED("Severe symptoms in a vulnerable individual require urgent medical evaluation.");
-  }
-
-  // 1c. Infant with fever or danger signs
-  if (isInfant(ageGroup) && infantHasDangerSign(symptoms, additionalText)) {
-    return makeRED("An infant showing these signs needs immediate medical attention. Do not delay.");
-  }
-
-  // ─── STEP 2: YELLOW checks (DEFAULT for non-GREEN) ────────
-
-  // 2a. Moderate or severe severity → YELLOW
-  if (severity === "Moderate" || severity === "Severe") {
-    return makeYELLOW(region);
-  }
-
-  // 2b. Duration over a week → YELLOW
-  if (duration === "Over a week") {
-    return makeYELLOW(region);
-  }
-
-  // 2c. High-risk region even if mild → YELLOW
-  if (HIGH_RISK_REGIONS.has(region)) {
-    return makeYELLOW(region);
-  }
-
-  // 2d. Vulnerable group with any real symptom → YELLOW
-  if (isVulnerableAge(ageGroup) || isPregnant(biologicalSex)) {
-    return makeYELLOW(region);
-  }
-
-  // 2e. Concerning comorbidity → YELLOW
-  if (hasConcerningComorbidity(comorbidities)) {
-    return makeYELLOW(region);
-  }
-
-  // ─── STEP 3: GREEN (tightly gated) ────────────────────────
-  // Only if ALL: mild severity, short duration, low-risk region,
-  // not vulnerable, no concerning comorbidity
+  // 1d. Severe symptoms in a vulnerable person.
   if (
+    severity === "Severe" &&
+    (isVulnerableAge(ageGroup) || isPregnant(biologicalSex) || isImmunocompromised(comorbidities))
+  ) {
+    return makeRED("Severe symptoms in a baby, older person, pregnant woman or someone with a weak immune system need urgent evaluation.");
+  }
+
+  // 2. Simple headache in a healthy adult (owner-approved home-care rule, 2026-11-26).
+  //    Headache must be the ONLY symptom; any other head symptom keeps it at YELLOW+.
+  if (
+    region === "head" &&
+    symptoms.length === 1 &&
+    symptoms[0] === "Headache" &&
     severity === "Mild" &&
     (duration === "Today" || duration === "Few days") &&
-    LOW_RISK_REGIONS.has(region) &&
-    !isVulnerableAge(ageGroup) &&
+    ADULT_AGES.has(ageGroup) &&
     !isPregnant(biologicalSex) &&
     !hasConcerningComorbidity(comorbidities)
   ) {
-    return {
-      urgencyLevel: "GREEN",
-      headline: "You can likely monitor this at home for now.",
-      details:
-        "Rest and take fluids as appropriate. Keep the area comfortable and avoid overexertion. Do NOT take any specific medications unless advised by a health worker.",
-      warningSignsToWatch: [
-        "Symptoms get worse or spread",
-        "New symptoms appear (fever, swelling, breathing trouble)",
-        "Symptoms last longer than expected",
-        "You feel worried — trust your instincts",
-      ],
-      showEmergencyBridge: false,
-    };
+    return makeGREEN([
+      "Headache becomes severe or is the worst you have ever had",
+      "Fever, stiff neck, confusion, or vomiting appears",
+      "Blurred vision, weakness, or trouble speaking",
+      "It lasts more than 3 days or keeps coming back",
+    ]);
   }
 
-  // ─── STEP 4: FALLBACK → YELLOW (safety default) ───────────
+  // 3. YELLOW checks.
+  if (severity === "Moderate" || severity === "Severe") return makeYELLOW(region);
+  if (duration === "Over a week") return makeYELLOW(region);
+  if (HIGH_RISK_REGIONS.has(region)) return makeYELLOW(region);
+  if (isVulnerableAge(ageGroup) || isPregnant(biologicalSex)) return makeYELLOW(region);
+  if (hasConcerningComorbidity(comorbidities)) return makeYELLOW(region);
+
+  // 4. GREEN — tightly gated.
+  if (severity === "Mild" && LOW_RISK_REGIONS.has(region)) {
+    return makeGREEN([
+      "Symptoms get worse or spread",
+      "New symptoms appear (fever, swelling, breathing trouble)",
+      "Symptoms last longer than expected",
+      "You feel worried — trust your instincts",
+    ]);
+  }
+
+  // 5. Safety default.
   return makeYELLOW(region);
 }
 
-/* ── Helper builders ───────────────────────────────────────── */
+/* ── Result builders ───────────────────────────────────────── */
 
 function makeRED(reason: string): OfflineTriageResult {
   return {
     urgencyLevel: "RED",
-    headline: "This may be an emergency — get help now.",
-    details: `${reason} Go to the nearest General Hospital Emergency Department immediately. Do not wait to see if it improves on its own.`,
+    headline: "This may be an emergency. Get help now.",
+    details: `${reason} Go to the nearest hospital emergency department now. Do not wait to see if it gets better.`,
     warningSignsToWatch: [],
     showEmergencyBridge: true,
   };
@@ -204,20 +144,30 @@ function makeRED(reason: string): OfflineTriageResult {
 
 function makeYELLOW(region: string): OfflineTriageResult {
   const regionNote = HIGH_RISK_REGIONS.has(region)
-    ? "Symptoms in this area can sometimes indicate something serious."
-    : "While this may not be an emergency, a health professional should assess it.";
-
+    ? "Symptoms in this part of the body can sometimes be serious."
+    : "It may not be an emergency, but a health worker should check it.";
   return {
     urgencyLevel: "YELLOW",
-    headline: "It's best to see a health worker soon.",
-    details: `Visit a Primary Health Centre (PHC), clinic, or pharmacy within the next 1–2 days. ${regionNote} Write down your symptoms, when they started, and anything that makes them better or worse.`,
+    headline: "See a health worker within 1–2 days.",
+    details: `Visit a Primary Health Centre (PHC), clinic or hospital within the next 1–2 days. ${regionNote} Write down your symptoms, when they started, and what makes them better or worse.`,
     warningSignsToWatch: [
-      "Condition worsens quickly",
-      "Fever develops or spikes",
-      "New pain, swelling, or difficulty breathing appears",
-      "You or the patient becomes confused or very drowsy",
-      "Any emergency danger sign appears — go to hospital immediately",
+      "It gets worse quickly",
+      "A fever starts or rises",
+      "New pain, swelling, or difficulty breathing",
+      "Confusion or unusual sleepiness",
+      "Any danger sign — go to hospital immediately",
     ],
+    showEmergencyBridge: false,
+  };
+}
+
+function makeGREEN(watchFor: string[]): OfflineTriageResult {
+  return {
+    urgencyLevel: "GREEN",
+    headline: "You can likely look after this at home for now.",
+    details:
+      "Rest, drink plenty of water, and keep an eye on how you feel. Do not start any medicine unless a health worker or pharmacist advises it.",
+    warningSignsToWatch: watchFor,
     showEmergencyBridge: false,
   };
 }

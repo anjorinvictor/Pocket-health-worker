@@ -65,8 +65,12 @@ describe("offline engine — demo scenario (c): mild benign adult → GREEN", ()
 });
 
 describe("offline engine — conservative rounding (documents intended behavior)", () => {
-  it("mild headache rounds UP to YELLOW because head is high-risk", () => {
-    const r = runOfflineTriage(input({ region: "head", symptoms: ["Headache"] }));
+  it("mild headache plus another head symptom still rounds UP to YELLOW", () => {
+    const r = runOfflineTriage(input({ region: "head", symptoms: ["Headache", "Dizziness / Lightheadedness"] }));
+    expect(r.urgencyLevel).toBe("YELLOW");
+  });
+  it("mild headache in a child is not home care", () => {
+    const r = runOfflineTriage(input({ region: "head", symptoms: ["Headache"], ageGroup: "Child (4-11)" }));
     expect(r.urgencyLevel).toBe("YELLOW");
   });
   it("pregnant + mild → YELLOW (not GREEN)", () => {
@@ -94,5 +98,47 @@ describe("offline engine — red-flag in free text overrides a benign body regio
     );
     expect(r.urgencyLevel).toBe("RED");
     expect(r.showEmergencyBridge).toBe(true);
+  });
+});
+
+/* ── Owner's required cases (CLAUDE.md) ──────────────────────── */
+describe("offline engine — owner's required cases", () => {
+  it("infant with fever + danger sign → RED (the 2 a.m. story)", () => {
+    const r = runOfflineTriage(input({ region: "head", symptoms: ["Fever"], severity: "Severe", ageGroup: "Infant (0-1)" }));
+    expect(r.urgencyLevel).toBe("RED");
+  });
+  it("pregnant woman with heavy bleeding (free text) → RED", () => {
+    const r = runOfflineTriage(input({
+      region: "abdomen", symptoms: ["Stomach pain / Cramps"], severity: "Moderate",
+      biologicalSex: "Female (Pregnant)", additionalText: "I am bleeding heavily",
+    }));
+    expect(r.urgencyLevel).toBe("RED");
+  });
+  it("pregnant woman with the bleeding symptom chip → RED", () => {
+    const r = runOfflineTriage(input({ region: "abdomen", symptoms: ["Bleeding from the vagina"], biologicalSex: "Female (Pregnant)" }));
+    expect(r.urgencyLevel).toBe("RED");
+  });
+  it("adult with a mild headache since today → GREEN (home care)", () => {
+    const r = runOfflineTriage(input({ region: "head", symptoms: ["Headache"] }));
+    expect(r.urgencyLevel).toBe("GREEN");
+  });
+  it("chest pain in an adult over 40 → RED", () => {
+    const r = runOfflineTriage(input({ region: "chest", symptoms: ["Chest pain / Tightness"], ageGroup: "Middle-aged (41-60)" }));
+    expect(r.urgencyLevel).toBe("RED");
+  });
+});
+
+describe("offline engine — regressions found in discovery (2026-11-26)", () => {
+  it("severe + 'Immunocompromised (HIV, Chemo)' (the body-map label) → RED", () => {
+    const r = runOfflineTriage(input({ region: "left_arm", symptoms: ["Swelling"], severity: "Severe", comorbidities: ["Immunocompromised (HIV, Chemo)"] }));
+    expect(r.urgencyLevel).toBe("RED");
+  });
+  it("'Hypertension / Heart Disease' blocks GREEN", () => {
+    const r = runOfflineTriage(input({ region: "left_hand", symptoms: ["Finger pain"], comorbidities: ["Hypertension / Heart Disease"] }));
+    expect(r.urgencyLevel).toBe("YELLOW");
+  });
+  it("not-pregnant woman with mild abdominal symptom is not escalated by pregnancy rules", () => {
+    const r = runOfflineTriage(input({ region: "abdomen", symptoms: ["Bloating / Gas"], biologicalSex: "Female (Not Pregnant)" }));
+    expect(r.urgencyLevel).toBe("YELLOW");
   });
 });
