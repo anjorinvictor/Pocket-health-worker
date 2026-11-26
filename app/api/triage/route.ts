@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { isCrisis } from "@/lib/safety/crisis";
 import { checkRedFlags } from "@/lib/safety/redFlags";
-import { SYSTEM_PROMPT, SYSTEM_PROMPT_COMPACT, groundingCorrection } from "@/lib/triage/prompts";
+import { EMERGENCY_EXPLAIN, SYSTEM_PROMPT, SYSTEM_PROMPT_COMPACT, groundingCorrection } from "@/lib/triage/prompts";
 import { parseGeminiResponse } from "@/lib/triage/schema";
 import { raiseUrgency } from "@/lib/triage/urgency";
 import { shouldForceResult } from "@/lib/triage/flow";
@@ -27,7 +27,15 @@ import { track } from "@/lib/telemetry";
 import facilityGuidance from "@/data/facility-guidance.json";
 import type { ChatTurn, StructuredInput, TriageResult, TriageResponse } from "@/types";
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+/**
+ * Primary model, then a backup when Google reports it overloaded (503), rate-limited (429)
+ * or it times out. Checked 2026-11-26: 2.5-flash ~1 s; 3.5-flash works but slower;
+ * 2.0-flash and 2.5-flash-lite are retired for this key.
+ */
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-3.5-flash"];
+const ATTEMPT_TIMEOUT_MS = 12000;
+/** Stay under the phone's 25 s request timeout. */
+const TOTAL_BUDGET_MS = 21000;
 const MAX_TURNS = 12;
 const MAX_TURN_CHARS = 2000;
 
@@ -69,11 +77,19 @@ function sanitizeHistory(raw: unknown): ChatTurn[] {
     .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_TURN_CHARS) }));
 }
 
-/** Calls Gemini with retry on rate limits. Returns the raw JSON text. */
+function isRetryable(err: unknown): boolean {
+  const m = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  return /\b(429|500|502|503|504)\b|unavailable|overloaded|high demand|rate limit|resource_exhausted|timeout|fetch failed/.test(m);
+}
+
+/**
+ * Calls Gemini: primary model first, the backup model on an overload / rate-limit / timeout,
+ * then one last try of the primary if time allows. Returns the raw JSON text.
+ */
 async function callGemini(
   client: GoogleGenAI,
   history: ChatTurn[],
-  opts: { forceResult: boolean; dataSaver: boolean; correction?: string }
+  opts: { forceResult: boolean; dataSaver: boolean; correction?: string; emergencyExplain?: boolean }
 ): Promise<string> {
   const contents = history.map((turn) => ({
     role: turn.role === "user" ? "user" : "model",
@@ -85,35 +101,38 @@ async function callGemini(
     systemInstruction +=
       "\n\nYou have asked enough follow-up questions. Give the final assessment JSON now (not a followup). If unsure, choose the higher urgency.";
   }
+  if (opts.emergencyExplain) systemInstruction += `\n\n${EMERGENCY_EXPLAIN}`;
   if (opts.correction) systemInstruction += `\n\n${opts.correction}`;
 
-  let delay = 1000;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const started = Date.now();
+  const plan = [...GEMINI_MODELS, GEMINI_MODELS[0]];
+  let lastErr: unknown;
+  for (const model of plan) {
+    const remaining = TOTAL_BUDGET_MS - (Date.now() - started);
+    if (remaining < 2000) break;
     try {
       const response = await client.models.generateContent({
-        model: GEMINI_MODEL,
+        model,
         contents,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
           temperature: opts.dataSaver ? 0.15 : 0.3,
-          // Data Saver: no hidden "thinking" tokens and a hard cap on answer length.
-          ...(opts.dataSaver ? { maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } } : {}),
+          httpOptions: { timeout: Math.min(ATTEMPT_TIMEOUT_MS, remaining) },
+          // Data Saver: hard cap on answer length; no hidden "thinking" tokens on 2.5.
+          ...(opts.dataSaver
+            ? { maxOutputTokens: 700, ...(model.startsWith("gemini-2.5") ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
+            : {}),
         },
       });
       return response.text ?? "";
     } catch (err: unknown) {
-      const isRateLimit =
-        err instanceof Error && (err.message.includes("429") || err.message.toLowerCase().includes("rate limit"));
-      if (isRateLimit && attempt < 2) {
-        await new Promise((res) => setTimeout(res, delay));
-        delay *= 2;
-        continue;
-      }
-      throw err;
+      lastErr = err;
+      if (!isRetryable(err)) throw err;
+      console.warn(`Gemini ${model} unavailable, trying next:`, err instanceof Error ? err.message.slice(0, 120) : err);
     }
   }
-  throw new Error("Max retries exceeded");
+  throw lastErr ?? new Error("Gemini unavailable");
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<TriageResponse>> {
@@ -124,6 +143,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     const followupCount = typeof body.followupCount === "number" ? body.followupCount : 0;
     const dataSaver = body.dataSaver === true;
     structured = isStructuredInput(body.structured) ? body.structured : null;
+    /** The phone already showed the emergency screen; it only wants the AI's explanation. */
+    const explain = body.explain === true;
 
     if (history.length === 0) {
       return NextResponse.json({ kind: "followup", question: "Please describe how you're feeling." });
@@ -141,14 +162,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     // 2. Red-flag phrases anywhere in what the person entered.
     const allUserText = userTurns.join(" ");
     const redFlag = checkRedFlags(allUserText);
-    if (redFlag) {
+    if (redFlag && !explain) {
       track({ name: "red_flag_detected", flag: redFlag.label, mode: "online" });
       return NextResponse.json({ kind: "emergency", matched: redFlag.label });
     }
 
-    // 3. Deterministic floor from body-map answers.
-    const floor = structured ? runOfflineTriage(structured) : null;
-    if (floor?.urgencyLevel === "RED") {
+    // 3. Deterministic floor from body-map answers. Online, severity alone is a YELLOW floor and
+    //    the AI decides (owner decision 2026-11-26); danger signs are RED.
+    const floor = structured ? runOfflineTriage(structured, { severityEscalates: false }) : null;
+    if (floor?.urgencyLevel === "RED" && !explain) {
       track({ name: "red_flag_detected", flag: "rules_floor", mode: "online" });
       return NextResponse.json({ kind: "emergency", matched: floor.details.split(". ")[0] });
     }
@@ -164,7 +186,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     // 4. Gemini.
     const client = new GoogleGenAI({ apiKey });
     const forceResult = shouldForceResult({ stage: "followup", followupCount });
-    let parsed = parseGeminiResponse(await callGemini(client, history, { forceResult, dataSaver }));
+    let parsed = parseGeminiResponse(
+      await callGemini(client, history, { forceResult: forceResult || explain, dataSaver, emergencyExplain: explain })
+    );
 
     // 5. Grounding: never let the AI assert history the person did not give. One retry.
     if (parsed.type === "result") {
@@ -172,7 +196,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
       if (invented.length > 0) {
         console.warn("Grounding check rejected AI answer (invented):", invented.join(", "));
         parsed = parseGeminiResponse(
-          await callGemini(client, history, { forceResult: true, dataSaver, correction: groundingCorrection(invented) })
+          await callGemini(client, history, {
+            forceResult: true,
+            dataSaver,
+            emergencyExplain: explain,
+            correction: groundingCorrection(invented),
+          })
         );
         if (
           parsed.type === "result" &&
@@ -193,7 +222,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
 
     const result = parsed.data;
     // The AI may raise urgency above the deterministic floor, never lower it.
-    const finalUrgency = floor ? raiseUrgency(result.urgencyLevel, floor.urgencyLevel) : result.urgencyLevel;
+    let finalUrgency = floor ? raiseUrgency(result.urgencyLevel, floor.urgencyLevel) : result.urgencyLevel;
+    if (explain || redFlag) finalUrgency = "RED";
     result.urgencyLevel = finalUrgency;
     if (dataSaver && result.generalCauses) result.generalCauses = result.generalCauses.slice(0, 3);
 
@@ -207,7 +237,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
   } catch (err) {
     console.error("Triage route error:", err);
     track({ name: "triage_error", stage: "route" });
-    // Body-map request: give the deterministic answer, never a generic one.
+    // Body-map request: give the deterministic (offline-strength) answer, never a generic one.
     if (structured) return NextResponse.json({ kind: "rules", result: runOfflineTriage(structured) });
     return NextResponse.json({ kind: "result", result: FALLBACK_RESULT });
   }

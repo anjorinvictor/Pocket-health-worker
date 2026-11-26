@@ -49,6 +49,10 @@ export function validateTriageResult(json: unknown): TriageResult {
     disclaimer: obj.disclaimer,
   };
 
+  if (typeof obj.likelyCondition === "string" && obj.likelyCondition.trim()) {
+    result.likelyCondition = obj.likelyCondition.trim().slice(0, 80);
+  }
+
   if (obj.generalCauses !== undefined) {
     if (
       !Array.isArray(obj.generalCauses) ||

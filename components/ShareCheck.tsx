@@ -27,7 +27,8 @@ Next step: ${URGENCY_LABEL[result.urgencyLevel].toUpperCase()}
 What was reported:
 ${firstComplaint}
 
-What we found:
+${result.likelyCondition ? `Most likely: ${result.likelyCondition} (not a diagnosis)
+` : ""}What might be wrong:
 ${result.assessment}
 
 Why:

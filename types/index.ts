@@ -20,6 +20,8 @@ export interface TriageResult {
   urgencyLevel: UrgencyLevel;
   reasoning: string;
   recommendedAction: string;
+  /** Short everyday name of the single most likely cause, e.g. "Malaria". Never a diagnosis. */
+  likelyCondition?: string;
   generalCauses?: string[];
   disclaimer: string;
 }

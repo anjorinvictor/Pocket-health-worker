@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ChatTurn, RulesResult, StructuredInput, TriageResponse, TriageResult } from "@/types";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import ChatWindow from "@/components/ChatWindow";
@@ -21,10 +21,12 @@ import OfflineResultCard, { type RulesReason } from "@/components/OfflineResultC
 import CrisisSupport from "@/components/CrisisSupport";
 import EmergencyBanner from "@/components/EmergencyBanner";
 import EmergencyActions from "@/components/EmergencyActions";
+import EmergencyExplanation, { type ExplainState } from "@/components/EmergencyExplanation";
 import ClinicalSidebar from "@/components/ClinicalSidebar";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import BodyMap from "@/components/BodyMap";
-import { HomeIcon, WifiOffIcon } from "@/components/Icons";
+import NafdacCheck from "@/components/NafdacCheck";
+import { ArrowLeftIcon, HomeIcon, WifiOffIcon } from "@/components/Icons";
 import { isCrisis } from "@/lib/safety/crisis";
 import { checkRedFlags } from "@/lib/safety/redFlags";
 import { runOfflineTriage } from "@/lib/triage/offlineTriage";
@@ -35,13 +37,14 @@ type AppState =
   | { screen: "welcome" }
   | { screen: "chat" }
   | { screen: "bodymap" }
+  | { screen: "medicine" }
   | { screen: "result"; result: TriageResult }
   | { screen: "offlineResult"; result: RulesResult; reason: RulesReason }
   | { screen: "crisis" }
   | { screen: "emergency"; message: string; local: boolean };
 
 /** Weak signal must not leave a scared parent waiting forever. */
-const REQUEST_TIMEOUT_MS = 20000;
+const REQUEST_TIMEOUT_MS = 25000;
 
 function subscribeOnline(cb: () => void) {
   window.addEventListener("online", cb);
@@ -91,6 +94,9 @@ export default function Home() {
   const [chatNeedsSignal, setChatNeedsSignal] = useState(false);
   const [userState, setUserState] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [explain, setExplain] = useState<ExplainState>({ status: "none" });
+  /** Ignores an explanation that arrives after the person has started over. */
+  const explainRun = useRef(0);
 
   const isOffline = useSyncExternalStore(
     subscribeOnline,
@@ -128,7 +134,34 @@ export default function Home() {
     setLoading(false);
     setFollowupCount(0);
     setChatNeedsSignal(false);
+    setExplain({ status: "none" });
+    explainRun.current += 1;
   }, []);
+
+  /**
+   * Emergency screen first (instant, no network). Then, if online and Data Saver is off, ask
+   * the AI to explain what is most likely going on; urgency stays RED whatever it says.
+   */
+  const goEmergency = useCallback(
+    (message: string, local: boolean, explainPayload?: { history: ChatTurn[]; structured?: StructuredInput }) => {
+      setAppState({ screen: "emergency", message, local });
+      const run = ++explainRun.current;
+      if (!explainPayload || dataSaver || !navigator.onLine) {
+        setExplain({ status: "none" });
+        return;
+      }
+      setExplain({ status: "loading" });
+      postTriage({ ...explainPayload, followupCount: 0, dataSaver: false, explain: true })
+        .then((data) => {
+          if (run !== explainRun.current) return;
+          setExplain(data.kind === "result" ? { status: "done", result: data.result } : { status: "failed" });
+        })
+        .catch(() => {
+          if (run === explainRun.current) setExplain({ status: "failed" });
+        });
+    },
+    [dataSaver]
+  );
 
   const showRules = useCallback((result: RulesResult, reason: RulesReason) => {
     if (result.urgencyLevel === "RED") {
@@ -148,23 +181,27 @@ export default function Home() {
       }
 
       // Deterministic rules on the phone first: instant, no data, works with no signal.
-      const local = runOfflineTriage(structured);
+      // Offline (no AI to ask) severity alone can mean emergency; online the AI decides that,
+      // while danger signs are an emergency either way (owner decision 2026-11-26).
       const offlineNow = isOffline || !navigator.onLine;
+      const offlineRules = runOfflineTriage(structured);
+      const onlineFloor = runOfflineTriage(structured, { severityEscalates: false });
+      const newHistory: ChatTurn[] = [{ role: "user", content: formattedText }];
 
-      if (local.urgencyLevel === "RED") {
-        track({ name: "triage_completed", urgency: "RED", mode: offlineNow ? "offline" : "online" });
-        showRules(local, offlineNow ? "offline" : "dataSaver");
+      if (offlineNow) {
+        track({ name: "triage_completed", urgency: offlineRules.urgencyLevel, mode: "offline" });
+        showRules(offlineRules, "offline");
         return;
       }
-      if (offlineNow) {
-        track({ name: "triage_completed", urgency: local.urgencyLevel, mode: "offline" });
-        showRules(local, "offline");
+      if (onlineFloor.urgencyLevel === "RED") {
+        track({ name: "triage_completed", urgency: "RED", mode: "online" });
+        setHistory(newHistory);
+        goEmergency(onlineFloor.details.split(". ")[0] + ".", true, { history: newHistory, structured });
         return;
       }
 
       setLoading(true);
       setAppState({ screen: "chat" });
-      const newHistory: ChatTurn[] = [{ role: "user", content: formattedText }];
       setHistory(newHistory);
 
       try {
@@ -174,7 +211,7 @@ export default function Home() {
             setAppState({ screen: "crisis" });
             break;
           case "emergency":
-            setAppState({ screen: "emergency", message: data.matched, local: false });
+            goEmergency(data.matched, false, { history: newHistory, structured });
             break;
           case "rules":
             showRules(data.result, "unavailable");
@@ -187,18 +224,19 @@ export default function Home() {
             // Belt and braces: the phone's rules are a floor here too.
             setAppState({
               screen: "result",
-              result: { ...data.result, urgencyLevel: raiseUrgency(data.result.urgencyLevel, local.urgencyLevel) },
+              result: { ...data.result, urgencyLevel: raiseUrgency(data.result.urgencyLevel, onlineFloor.urgencyLevel) },
             });
             break;
         }
       } catch {
         track({ name: "triage_error", stage: "bodymap_fetch" });
-        showRules(local, "unavailable");
+        // No AI answer: fall back to the full-strength (offline) rules.
+        showRules(offlineRules, "unavailable");
       } finally {
         setLoading(false);
       }
     },
-    [dataSaver, isOffline, showRules]
+    [dataSaver, isOffline, showRules, goEmergency]
   );
 
   /* ── Chat ─────────────────────────────────────────────────── */
@@ -217,7 +255,7 @@ export default function Home() {
       const redFlag = checkRedFlags(allUserText);
       if (redFlag) {
         track({ name: "red_flag_detected", flag: redFlag.label, mode: isOffline ? "offline" : "online" });
-        setAppState({ screen: "emergency", message: redFlag.message, local: true });
+        goEmergency(redFlag.message, true, isOffline ? undefined : { history: newHistory });
         return;
       }
 
@@ -246,7 +284,7 @@ export default function Home() {
             setAppState({ screen: "crisis" });
             break;
           case "emergency":
-            setAppState({ screen: "emergency", message: data.matched, local: false });
+            goEmergency(data.matched, false, { history: newHistory });
             break;
           case "rules":
             showRules(data.result, "unavailable");
@@ -274,7 +312,7 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [history, followupCount, dataSaver, isOffline, showRules]
+    [history, followupCount, dataSaver, isOffline, showRules, goEmergency]
   );
 
   const tools = (
@@ -344,6 +382,25 @@ export default function Home() {
 
         {appState.screen === "crisis" && <CrisisSupport onReset={reset} />}
 
+        {appState.screen === "medicine" && (
+          <div className="mx-auto max-w-xl space-y-5 animate-fade-in">
+            <button type="button" onClick={reset} className="btn btn-secondary">
+              <ArrowLeftIcon /> Back
+            </button>
+            <div className="space-y-2">
+              <p className="eyebrow">NAFDAC check</p>
+              <h1 className="text-3xl sm:text-4xl font-bold">Is this medicine genuine?</h1>
+              <p className="text-lg text-muted">
+                Fake medicines are common. NAFDAC can tell you if yours is real. This app does not decide: it only
+                helps you ask NAFDAC.
+              </p>
+            </div>
+            <div className="card p-5 sm:p-6">
+              <NafdacCheck />
+            </div>
+          </div>
+        )}
+
         {appState.screen === "emergency" && (
           <div className="mx-auto max-w-xl space-y-4 animate-fade-in">
             <EmergencyBanner message={appState.message} />
@@ -353,7 +410,9 @@ export default function Home() {
                 guidance, not a diagnosis.
               </p>
             )}
-            <EmergencyActions selectedState={userState} onStateChange={setUserState} />
+            <EmergencyActions selectedState={userState} onStateChange={setUserState}>
+              <EmergencyExplanation state={explain} />
+            </EmergencyActions>
             <button type="button" onClick={reset} className="btn btn-secondary w-full">
               Start a new check
             </button>

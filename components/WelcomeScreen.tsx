@@ -9,11 +9,11 @@
 "use client";
 
 import UrgencyBadge from "./UrgencyBadge";
-import { ArrowRightIcon, BodyIcon, ChatIcon, PhoneIcon } from "./Icons";
+import { BodyIcon, ChatIcon, PhoneIcon, PillIcon } from "./Icons";
 import { NATIONAL_EMERGENCY } from "@/data/emergency-lines";
 
 interface Props {
-  onSelectMode: (mode: "chat" | "bodymap") => void;
+  onSelectMode: (mode: "chat" | "bodymap" | "medicine") => void;
   onCrisisClick: () => void;
 }
 
@@ -31,34 +31,39 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick }: Props) {
           know the next step: care at home, visit a clinic, or go to hospital now.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
             type="button"
             onClick={() => onSelectMode("chat")}
-            className="btn btn-primary justify-between text-left min-h-20 px-5 py-4"
+            className="btn btn-primary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3"
           >
-            <span className="flex items-center gap-3">
-              <ChatIcon />
-              <span>
-                <span className="block text-lg">Describe it in your own words</span>
-                <span className="block text-sm font-normal opacity-90">A short, gentle conversation</span>
-              </span>
+            <ChatIcon />
+            <span>
+              <span className="block text-lg">Describe it in your own words</span>
+              <span className="block text-sm font-normal opacity-90">A short, gentle conversation</span>
             </span>
-            <ArrowRightIcon />
           </button>
           <button
             type="button"
             onClick={() => onSelectMode("bodymap")}
-            className="btn btn-secondary justify-between text-left min-h-20 px-5 py-4"
+            className="btn btn-secondary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3"
           >
-            <span className="flex items-center gap-3">
-              <BodyIcon className="w-6 h-6 text-rust" />
-              <span>
-                <span className="block text-lg">Tap where it hurts</span>
-                <span className="block text-sm font-normal text-muted">Works without internet</span>
-              </span>
+            <BodyIcon className="w-6 h-6 text-rust" />
+            <span>
+              <span className="block text-lg">Tap where it hurts</span>
+              <span className="block text-sm font-normal text-muted">Works without internet</span>
             </span>
-            <ArrowRightIcon className="w-5 h-5 text-rust" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelectMode("medicine")}
+            className="btn btn-secondary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3"
+          >
+            <PillIcon className="w-6 h-6 text-rust" />
+            <span>
+              <span className="block text-lg">Check a medicine</span>
+              <span className="block text-sm font-normal text-muted">Is it genuine? Ask NAFDAC by SMS</span>
+            </span>
           </button>
         </div>
 

@@ -57,10 +57,27 @@ const BACK_REGIONS: Region[] = ["head", "neck", "upper_back", "lower_back", "lef
 
 /* SVG colours come from the theme (CSS custom properties defined in globals.css). */
 const FILL = {
-  idle: { fill: "var(--color-sand)", stroke: "var(--color-edge)", width: 1.4 },
+  idle: { fill: "var(--color-sand)", stroke: "var(--color-paper)", width: 1.6 },
   hover: { fill: "var(--color-rust-soft)", stroke: "var(--color-rust)", width: 1.8 },
-  active: { fill: "var(--color-rust)", stroke: "var(--color-rust-dark)", width: 2.2 },
+  active: { fill: "var(--color-rust)", stroke: "var(--color-rust-dark)", width: 2 },
 } as const;
+
+/*
+ * Human figure (viewBox 0 0 200 420). Left-side paths are drawn once and mirrored for the
+ * right side, so the body is symmetric. Arms and legs are drawn before the torso so the
+ * torso overlaps them cleanly at the shoulders and hips.
+ */
+const BODY = {
+  head: "M100,10 C113,10 122,20 122,35 C122,46 119,55 113,61 C109,65 105,67 100,67 C95,67 91,65 87,61 C81,55 78,46 78,35 C78,20 87,10 100,10 Z",
+  neck: "M91,60 C92,66 92,72 90,79 L110,79 C108,72 108,66 109,60 C106,64 103,66 100,66 C97,66 94,64 91,60 Z",
+  upperTorso: "M90,79 C80,80 70,82 63,87 C58,91 57,98 58,106 C59,118 62,132 66,146 L134,146 C138,132 141,118 142,106 C143,98 142,91 137,87 C130,82 120,80 110,79 Z",
+  lowerTorso: "M66,146 C68,158 70,168 69,180 C68,192 64,204 62,214 L138,214 C136,204 132,192 131,180 C130,168 132,158 134,146 Z",
+  arm: "M64,86 C55,88 49,96 47,108 C45,122 44,138 42,152 C40,168 37,186 35,204 C34,212 33,218 33,224 L45,225 C46,216 48,206 50,196 C53,180 56,164 57,150 C58,138 59,126 60,114 C61,104 63,94 64,86 Z",
+  hand: "M33,223 C30,229 28,236 28,243 C28,251 31,258 35,261 C38,263 42,262 44,259 C46,255 47,249 47,243 C47,236 46,230 45,225 Z",
+  leg: "M62,213 C59,236 60,258 63,282 C65,300 65,316 66,334 C67,352 68,370 70,388 L86,388 C86,370 88,352 90,334 C92,316 95,300 96,284 C98,264 99,246 99,232 L100,213 Z",
+  foot: "M70,387 C68,393 65,398 62,403 C60,407 63,411 70,411 L87,411 C91,411 92,407 90,401 C89,396 87,391 86,387 Z",
+};
+const MIRROR = "matrix(-1 0 0 1 200 0)";
 
 function Choice({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return (
@@ -197,36 +214,57 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
             <Choice label="Back" on={view === "back"} onClick={() => switchView("back")} />
           </div>
 
-          <div className="mx-auto w-full max-w-[240px]">
-            <svg viewBox="0 0 200 370" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto select-none" aria-label={`Body, ${view} view`}>
-              <ellipse cx="100" cy="38" rx="24" ry="26" {...regionProps("head")} />
-              {view === "front" && (
-                <g style={{ pointerEvents: "none" }} fill="var(--color-edge)">
-                  <circle cx="91" cy="34" r="2" />
-                  <circle cx="109" cy="34" r="2" />
-                  <path d="M93,44 Q100,50 107,44" fill="none" stroke="var(--color-edge)" strokeWidth="1.5" strokeLinecap="round" />
-                </g>
-              )}
-              <rect x="91" y="64" width="18" height="14" rx="5" {...regionProps("neck")} />
-              <path d="M56,86 C48,86 42,96 40,120 C38,144 38,160 42,168 C46,176 54,176 56,168 C58,160 58,144 58,120 C58,96 60,86 56,86 Z" {...regionProps("left_arm")} />
-              <ellipse cx="49" cy="180" rx="9" ry="8" {...regionProps("left_hand")} />
-              <path d="M144,86 C152,86 158,96 160,120 C162,144 162,160 158,168 C154,176 146,176 144,168 C142,160 142,144 142,120 C142,96 140,86 144,86 Z" {...regionProps("right_arm")} />
-              <ellipse cx="151" cy="180" rx="9" ry="8" {...regionProps("right_hand")} />
+          <div className="mx-auto w-full max-w-[220px]">
+            <svg viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto select-none" aria-label={`Human body, ${view} view`}>
+              {/* Limbs first (under the torso). On the front view the person's right side is on your left. */}
+              <path d={BODY.arm} {...regionProps("left_arm")} />
+              <path d={BODY.hand} {...regionProps("left_hand")} />
+              <path d={BODY.arm} transform={MIRROR} {...regionProps("right_arm")} />
+              <path d={BODY.hand} transform={MIRROR} {...regionProps("right_hand")} />
+              <path d={BODY.leg} {...regionProps("left_leg")} />
+              <path d={BODY.foot} {...regionProps("left_foot")} />
+              <path d={BODY.leg} transform={MIRROR} {...regionProps("right_leg")} />
+              <path d={BODY.foot} transform={MIRROR} {...regionProps("right_foot")} />
+
               {view === "front" ? (
                 <>
-                  <rect x="62" y="80" width="76" height="52" rx="5" {...regionProps("chest")} />
-                  <rect x="66" y="134" width="68" height="54" rx="4" {...regionProps("abdomen")} />
+                  <path d={BODY.upperTorso} {...regionProps("chest")} />
+                  <path d={BODY.lowerTorso} {...regionProps("abdomen")} />
                 </>
               ) : (
                 <>
-                  <rect x="62" y="80" width="76" height="52" rx="5" {...regionProps("upper_back")} />
-                  <rect x="66" y="134" width="68" height="54" rx="4" {...regionProps("lower_back")} />
+                  <path d={BODY.upperTorso} {...regionProps("upper_back")} />
+                  <path d={BODY.lowerTorso} {...regionProps("lower_back")} />
                 </>
               )}
-              <path d="M72,194 C68,194 66,210 66,240 C66,270 68,310 72,340 C74,346 82,346 84,340 C88,310 90,270 90,240 C90,210 88,194 84,194 Z" {...regionProps("left_leg")} />
-              <ellipse cx="78" cy="350" rx="13" ry="6" {...regionProps("left_foot")} />
-              <path d="M116,194 C112,194 110,210 110,240 C110,270 112,310 116,340 C118,346 126,346 128,340 C132,310 134,270 134,240 C134,210 132,194 128,194 Z" {...regionProps("right_leg")} />
-              <ellipse cx="122" cy="350" rx="13" ry="6" {...regionProps("right_foot")} />
+              <path d={BODY.neck} {...regionProps("neck")} />
+              <path d={BODY.head} {...regionProps("head")} />
+
+              {/* Gentle anatomy lines — decoration only, never clickable. */}
+              <g
+                style={{ pointerEvents: "none" }}
+                fill="none"
+                stroke="var(--color-edge)"
+                strokeOpacity={0.45}
+                strokeWidth={1.2}
+                strokeLinecap="round"
+              >
+                {view === "front" ? (
+                  <>
+                    <path d="M76,89 Q88,94 97,91 M103,91 Q112,94 124,89" />
+                    <path d="M100,104 L100,134" strokeOpacity={0.25} />
+                    <circle cx="100" cy="184" r="1.6" fill="var(--color-edge)" stroke="none" fillOpacity={0.5} />
+                    <path d="M80,296 Q78,302 80,308 M120,296 Q122,302 120,308" strokeOpacity={0.3} />
+                  </>
+                ) : (
+                  <>
+                    <path d="M81,28 Q100,12 119,28" />
+                    <path d="M100,84 L100,210" strokeDasharray="2 4" />
+                    <path d="M74,100 Q82,116 93,106 M126,100 Q118,116 107,106" />
+                    <path d="M76,206 Q100,214 124,206" strokeOpacity={0.3} />
+                  </>
+                )}
+              </g>
             </svg>
           </div>
 

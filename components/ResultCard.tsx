@@ -47,19 +47,39 @@ export default function ResultCard({ result, history, onReset, onContinue, selec
         <div className="space-y-3">
           <UrgencyBadge level={result.urgencyLevel} />
           {isRed ? (
-            <h2 id="result-title" className="text-2xl font-bold">What we found</h2>
+            <h2 id="result-title" className="text-2xl font-bold">What might be wrong</h2>
           ) : (
             <h1 id="result-title" className="text-3xl font-bold">{HEADLINE[result.urgencyLevel]}</h1>
           )}
         </div>
 
-        <section className="space-y-1.5">
-          {!isRed && <h2 className="text-lg font-bold">What we found</h2>}
+        <section className="space-y-2">
+          {!isRed && <h2 className="text-lg font-bold">What might be wrong</h2>}
+          {result.likelyCondition && (
+            <p className="rounded-xl bg-rust-soft px-4 py-3 text-lg">
+              <span className="font-semibold">Most likely: </span>
+              <span className="font-serif font-bold">{result.likelyCondition}</span>
+            </p>
+          )}
           <p className="text-lg">{result.assessment}</p>
         </section>
 
+        {result.generalCauses && result.generalCauses.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold">
+              It could also be <span className="font-sans text-base font-normal text-muted">(informational only)</span>
+            </h2>
+            <ul className="list-disc pl-5 space-y-1">
+              {result.generalCauses.map((cause, i) => (
+                <li key={i}>{cause}</li>
+              ))}
+            </ul>
+            <p className="text-sm text-muted">Not a diagnosis. Only a health worker who examines you can confirm what it is.</p>
+          </section>
+        )}
+
         <section className="space-y-1.5">
-          <h2 className="text-lg font-bold">Why</h2>
+          <h2 className="text-lg font-bold">Why we think so</h2>
           <p>{result.reasoning}</p>
         </section>
 
@@ -67,20 +87,6 @@ export default function ResultCard({ result, history, onReset, onContinue, selec
           <h2 className="text-lg font-bold">What to do (Nigeria)</h2>
           <div className="whitespace-pre-line rounded-xl bg-sand p-4">{result.recommendedAction}</div>
         </section>
-
-        {result.generalCauses && result.generalCauses.length > 0 && (
-          <section className="space-y-2">
-            <h2 className="text-lg font-bold">
-              General possibilities <span className="font-sans text-base font-normal text-muted">(informational only)</span>
-            </h2>
-            <ul className="list-disc pl-5 space-y-1">
-              {result.generalCauses.map((cause, i) => (
-                <li key={i}>{cause}</li>
-              ))}
-            </ul>
-            <p className="text-sm text-muted">These are not a diagnosis. Only a health worker can tell you what it is.</p>
-          </section>
-        )}
 
         <p className="border-t border-line pt-4 text-sm text-muted">{result.disclaimer}</p>
       </article>

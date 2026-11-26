@@ -15,9 +15,11 @@ import { PhoneIcon } from "./Icons";
 interface Props {
   selectedState: string | null;
   onStateChange: (state: string) => void;
+  /** Shown right after the call buttons (e.g. the AI's explanation). */
+  children?: React.ReactNode;
 }
 
-export default function EmergencyActions({ selectedState, onStateChange }: Props) {
+export default function EmergencyActions({ selectedState, onStateChange, children }: Props) {
   const ambulance = selectedState ? STATE_AMBULANCE[selectedState] : undefined;
   const mani = MENTAL_HEALTH_LINES[0].lines[0];
 
@@ -37,6 +39,8 @@ export default function EmergencyActions({ selectedState, onStateChange }: Props
           <p className="text-sm text-muted">Choose your state below to see a local ambulance line where one exists.</p>
         )}
       </section>
+
+      {children}
 
       <section aria-labelledby="no-transport" className="card p-5 space-y-2">
         <h2 id="no-transport" className="text-xl font-bold">No transport?</h2>

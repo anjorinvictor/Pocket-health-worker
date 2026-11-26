@@ -55,8 +55,19 @@ const PREGNANCY_DANGER_SIGNS = [
 const textOf = (symptoms: string[], additionalText: string) =>
   [...symptoms, additionalText].join(" ").toLowerCase();
 
+export interface RulesOptions {
+  /**
+   * true (default, offline / fallback): "Severe" in a critical area or a vulnerable person is
+   * an emergency, because there is no AI to ask follow-up questions.
+   * false (online floor, owner decision 2026-11-26): severity alone is at least YELLOW and the AI
+   * decides whether it is an emergency. Danger signs are RED in both modes.
+   */
+  severityEscalates?: boolean;
+}
+
 /* ── Main entry point ──────────────────────────────────────── */
-export function runOfflineTriage(input: OfflineTriageInput): OfflineTriageResult {
+export function runOfflineTriage(input: OfflineTriageInput, opts: RulesOptions = {}): OfflineTriageResult {
+  const severityEscalates = opts.severityEscalates ?? true;
   const { region, symptoms, severity, duration, ageGroup, biologicalSex, comorbidities, additionalText } = input;
   const allText = textOf(symptoms, additionalText);
 
@@ -77,13 +88,14 @@ export function runOfflineTriage(input: OfflineTriageInput): OfflineTriageResult
   }
 
   // 1c. Severe symptoms in a critical area.
-  if (severity === "Severe" && HIGH_RISK_REGIONS.has(region)) {
+  if (severity === "Severe" && HIGH_RISK_REGIONS.has(region) && severityEscalates) {
     return makeRED("Severe symptoms in this part of the body need urgent medical evaluation.");
   }
 
   // 1d. Severe symptoms in a vulnerable person.
   if (
     severity === "Severe" &&
+    severityEscalates &&
     (isVulnerableAge(ageGroup) || isPregnant(biologicalSex) || isImmunocompromised(comorbidities))
   ) {
     return makeRED("Severe symptoms in a baby, older person, pregnant woman or someone with a weak immune system need urgent evaluation.");

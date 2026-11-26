@@ -128,6 +128,20 @@ describe("offline engine — owner's required cases", () => {
   });
 });
 
+describe("online floor mode (severityEscalates: false)", () => {
+  it("severe headache in an adult is a YELLOW floor online (AI decides), RED offline", () => {
+    const i = input({ region: "head", symptoms: ["Headache"], severity: "Severe" });
+    expect(runOfflineTriage(i, { severityEscalates: false }).urgencyLevel).toBe("YELLOW");
+    expect(runOfflineTriage(i).urgencyLevel).toBe("RED");
+  });
+  it("danger signs stay RED online: infant fever, pregnancy bleeding, chest pain", () => {
+    const off = { severityEscalates: false };
+    expect(runOfflineTriage(input({ region: "head", symptoms: ["Fever"], severity: "Severe", ageGroup: "Infant (0-1)" }), off).urgencyLevel).toBe("RED");
+    expect(runOfflineTriage(input({ region: "abdomen", symptoms: ["Bleeding from the vagina"], biologicalSex: "Female (Pregnant)" }), off).urgencyLevel).toBe("RED");
+    expect(runOfflineTriage(input({ region: "chest", symptoms: ["Chest pain / Tightness"], ageGroup: "Middle-aged (41-60)" }), off).urgencyLevel).toBe("RED");
+  });
+});
+
 describe("offline engine — regressions found in discovery (2026-11-26)", () => {
   it("severe + 'Immunocompromised (HIV, Chemo)' (the body-map label) → RED", () => {
     const r = runOfflineTriage(input({ region: "left_arm", symptoms: ["Swelling"], severity: "Severe", comorbidities: ["Immunocompromised (HIV, Chemo)"] }));

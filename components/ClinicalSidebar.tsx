@@ -1,14 +1,13 @@
 /**
  * Pocket Health Worker — Health tools panel
  *
- * Composes the three local helpers: Data Saver, the NAFDAC medicine check and the
- * hospital finder. Shown as a sidebar on wide screens and as a section on phones.
+ * Composes the local helpers: Data Saver and the hospital finder. (The NAFDAC medicine
+ * check has its own screen, reached from the landing page.) Shown as a sidebar on wide screens and as a section on phones.
  */
 
 "use client";
 
 import DataSaverToggle from "./DataSaverToggle";
-import NafdacCheck from "./NafdacCheck";
 import FacilityFinder from "./FacilityFinder";
 
 interface Props {
@@ -26,9 +25,6 @@ export default function ClinicalSidebar({ dataSaver, onToggleDataSaver, selected
       </div>
       <div className="card p-5">
         <FacilityFinder selectedState={selectedState} onStateChange={onStateChange} />
-      </div>
-      <div className="card p-5">
-        <NafdacCheck />
       </div>
     </aside>
   );

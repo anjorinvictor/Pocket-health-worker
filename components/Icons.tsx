@@ -97,3 +97,12 @@ export function SendIcon({ className = "w-5 h-5" }: P) {
     </svg>
   );
 }
+
+export function PillIcon({ className = "w-6 h-6" }: P) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${base} ${className}`}>
+      <rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)" />
+      <path strokeLinecap="round" d="M9.5 9.5l5 5" />
+    </svg>
+  );
+}

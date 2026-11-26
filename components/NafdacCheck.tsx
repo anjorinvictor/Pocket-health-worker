@@ -43,12 +43,6 @@ export default function NafdacCheck() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold">Check a medicine with NAFDAC</h2>
-        <p className="text-sm text-muted mt-0.5">
-          NAFDAC gives the answer, not this app.
-        </p>
-      </div>
 
       {/* 1. Scratch code */}
       <form
@@ -58,7 +52,8 @@ export default function NafdacCheck() {
           if (smsReady) window.location.href = smsHref;
         }}
       >
-        <p className="font-semibold">1. Scratch code on the pack (strongest check)</p>
+        <h2 className="text-xl font-bold">1. Scratch code on the pack</h2>
+        <p className="text-sm text-muted -mt-2">The strongest check. Works without data.</p>
         <div>
           <label htmlFor="mas-pin" className="block text-sm font-semibold text-muted mb-1.5">
             PIN under the scratch panel
@@ -91,7 +86,7 @@ export default function NafdacCheck() {
           href={smsReady ? smsHref : undefined}
           aria-disabled={!smsReady}
           onClick={(e) => { if (!smsReady) e.preventDefault(); }}
-          className="btn btn-secondary w-full"
+          className="btn btn-primary w-full"
         >
           Open SMS to send the PIN
         </a>
@@ -103,7 +98,7 @@ export default function NafdacCheck() {
 
       {/* 2. Registration number */}
       <div className="space-y-3 border-t border-line pt-5">
-        <p className="font-semibold">2. NAFDAC registration number</p>
+        <h2 className="text-xl font-bold">2. NAFDAC registration number</h2>
         <div>
           <label htmlFor="nrn" className="block text-sm font-semibold text-muted mb-1.5">
             NAFDAC Reg. No. on the pack
