@@ -14,6 +14,7 @@ import UrgencyBadge from "./UrgencyBadge";
 import EmergencyBanner from "./EmergencyBanner";
 import ConnectHealthWorker from "./ConnectHealthWorker";
 import { PhoneIcon } from "./Icons";
+import { NATIONAL_EMERGENCY } from "@/data/emergency-lines";
 
 export type RulesReason = "offline" | "dataSaver" | "unavailable";
 
@@ -47,8 +48,8 @@ export default function OfflineResultCard({ result, reason, onReset }: Props) {
       {isRed && (
         <>
           <EmergencyBanner />
-          <a href="tel:112" className="btn btn-danger w-full text-lg min-h-14">
-            <PhoneIcon className="w-6 h-6" /> Call 112
+          <a href={`tel:${NATIONAL_EMERGENCY.tel}`} className="btn btn-danger w-full text-lg min-h-14">
+            <PhoneIcon className="w-6 h-6" /> Call {NATIONAL_EMERGENCY.display}
           </a>
         </>
       )}
@@ -92,6 +93,7 @@ export default function OfflineResultCard({ result, reason, onReset }: Props) {
 
       <div className="grid grid-cols-1 gap-3">
         {result.urgencyLevel !== "GREEN" && <ConnectHealthWorker />}
+        {/* The only next step on this screen, so it is the screen's one primary action. */}
         <button type="button" onClick={onReset} className="btn btn-primary w-full">
           Start a new check
         </button>

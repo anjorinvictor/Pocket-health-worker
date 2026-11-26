@@ -57,7 +57,7 @@ export default function EmergencyActions({ selectedState, onStateChange }: Props
 
       <p className="text-sm text-muted">
         Feeling overwhelmed or unsafe?{" "}
-        <a href={`tel:${mani.tel}`} className="font-semibold text-rust underline underline-offset-2">
+        <a href={`tel:${mani.tel}`} className="btn btn-quiet px-1">
           Talk to MANI: {mani.display}
         </a>
       </p>

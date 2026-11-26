@@ -84,6 +84,19 @@ Env: `GEMINI_API_KEY` (in `.env.local`, git-ignored via `.env*`).
 
 "Diabetes" appears in exactly one input path: the body-map Step 7 checkbox. If it isn't ticked, the prompt literally says `Pre-existing Conditions: None reported.` Nothing else in the code injects diabetes. So either the tester ticked it (it's the first option, easy to hit), or Gemini invented it. The prompt never tells the model to use only stated facts, and the result is never checked against the input — both need fixing regardless. Additionally, Data Saver's 3-turn history cut can drop the original body-map summary on follow-ups, which invites invention.
 
+## Status after branch `rebuild/mobile-safety` (2026-11-26)
+
+The tables above describe `main` / production. On the branch:
+
+- **Safety**: deterministic rules run on the phone first and as a server floor; any RED goes straight to the emergency screen (works offline). AI may raise, never lower. AI failure / timeout (20 s) → rules result, never a generic YELLOW. Grounding check (`lib/triage/grounding.ts`) rejects invented conditions, one corrective retry. Combo red flags (`matchAll`) in `data/red-flags.json`. All four required cases pass offline (tests + browser) — online they hit the same deterministic gate.
+- **Emergency screen**: `EmergencyActions` everywhere RED appears — 112 first, LASAMBUS 767 only when Lagos is chosen, no-transport advice, hospital names.
+- **Directory**: `data/facilities.ts`, names + towns only, no phone numbers (owner decision). Numbers live in `data/emergency-lines.ts` with sources.
+- **NAFDAC**: `components/NafdacCheck.tsx` — `sms:` link to the user's own short code; Greenbook link with the NRN copied. No verdicts, no "simulate".
+- **Data Saver**: header switch on every screen (memory only, resets on reload). Measured on the same request: response 1,080–1,291 B → 955 B, 3.0–3.9 s → 1.4 s; emergencies 0 B (answered on phone). First page load ≈ 213 KB gzip, cached by the service worker.
+- **UI**: theme in `app/globals.css` (`@theme` + `.btn/.chip/.field/.card`), all text pairs WCAG AA; 360 px first, desktop two-column; body-map regions keyboard-operable.
+- **Commands**: build ✅, lint ✅ (0 problems), tests ✅ 84.
+- **Open**: SURPIN toll-free number removed (unconfirmed); hospital names need owner verification; Vercel preview needs `GEMINI_API_KEY` set for the Preview environment or chat falls back to "see a clinic" (body map still works via rules); privacy copy now discloses that answers go to an AI service when online.
+
 ## Non-negotiables
 
 Do not break or weaken any of these. If a change would touch them, stop and ask.
@@ -104,7 +117,7 @@ Do not break or weaken any of these. If a change would touch them, stop and ask.
 
 ## Work plan, in order
 
-- **Step 0: Discovery** — done 2026-11-26 (this file).
+- **Step 0: Discovery** — done 2026-11-26 (this file). Steps 1–3 done on branch `rebuild/mobile-safety` (see Status above).
 - **Step 1: Data Saver, made real** — measurably fewer bytes per check when on (measure in DevTools, "Slow 3G"): shorter prompts, capped output, no web fonts/non-essential images, no prefetch, no background requests, prefer the offline engine where equivalent. Show it's on. No storage without asking.
 - **Step 2: NAFDAC check, honest and real** — scratch PIN + user-entered short code → `sms:` link (works offline); NRN → Greenbook search; remove "simulate" and every locally generated verdict; note that the scratch-PIN check is the stronger test.
 - **Step 3: UI upgrade** — keep brand: espresso `#1C1412`, rust `#AD4A2B`, cream `#F6F2EB`, ember `#E58A5F` on dark; serif headings, clean sans body. Mobile-first at 360 px, then desktop. ≥48 px tap targets, WCAG AA, large plain type, one primary action per screen. Emergency unmistakable and never colour-only. Small JS, no heavy UI libraries, no gimmicky emoji.

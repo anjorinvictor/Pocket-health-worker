@@ -115,6 +115,20 @@ h3 {
   .btn-danger:not(:disabled):hover {
     background: var(--color-danger-dark);
   }
+  /* Buttons on the espresso header. aria-checked="true" = a switch that is on. */
+  .btn-on-dark {
+    background: transparent;
+    color: var(--color-cream);
+    border-color: var(--color-on-dark-muted);
+  }
+  .btn-on-dark:hover {
+    background: var(--color-espresso-soft);
+  }
+  .btn-on-dark[aria-checked="true"] {
+    background: var(--color-ember);
+    color: var(--color-espresso);
+    border-color: var(--color-ember);
+  }
   .btn-quiet {
     background: transparent;
     color: var(--color-rust);
@@ -164,7 +178,7 @@ h3 {
   }
 
   .eyebrow {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;

@@ -44,7 +44,7 @@ export default function NafdacCheck() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-bold">Check a medicine with NAFDAC</h3>
+        <h2 className="text-xl font-bold">Check a medicine with NAFDAC</h2>
         <p className="text-sm text-muted mt-0.5">
           NAFDAC gives the answer, not this app.
         </p>
@@ -91,7 +91,7 @@ export default function NafdacCheck() {
           href={smsReady ? smsHref : undefined}
           aria-disabled={!smsReady}
           onClick={(e) => { if (!smsReady) e.preventDefault(); }}
-          className="btn btn-primary w-full"
+          className="btn btn-secondary w-full"
         >
           Open SMS to send the PIN
         </a>

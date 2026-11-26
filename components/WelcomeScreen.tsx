@@ -10,6 +10,7 @@
 
 import UrgencyBadge from "./UrgencyBadge";
 import { ArrowRightIcon, BodyIcon, ChatIcon, PhoneIcon } from "./Icons";
+import { NATIONAL_EMERGENCY } from "@/data/emergency-lines";
 
 interface Props {
   onSelectMode: (mode: "chat" | "bodymap") => void;
@@ -61,8 +62,8 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick }: Props) {
           </button>
         </div>
 
-        <a href="tel:112" className="btn btn-quiet px-0">
-          <PhoneIcon /> In an emergency, call 112 now
+        <a href={`tel:${NATIONAL_EMERGENCY.tel}`} className="btn btn-quiet px-0">
+          <PhoneIcon /> In an emergency, call {NATIONAL_EMERGENCY.display} now
         </a>
       </section>
 

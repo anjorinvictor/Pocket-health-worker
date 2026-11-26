@@ -310,7 +310,7 @@ export default function Home() {
             )}
             <DataSaverToggle on={dataSaver} onChange={setDataSaver} variant="header" />
             {appState.screen !== "welcome" && (
-              <button type="button" onClick={reset} className="btn min-h-12 px-3 text-cream border border-on-dark-muted bg-transparent">
+              <button type="button" onClick={reset} className="btn btn-on-dark px-3">
                 <HomeIcon />
                 <span className="hidden sm:inline">Start over</span>
                 <span className="sr-only sm:hidden">Start over</span>
@@ -407,7 +407,7 @@ export default function Home() {
               <ChatWindow history={history} loading={loading} />
               {chatNeedsSignal && (
                 <div className="px-4 pb-3">
-                  <button type="button" onClick={() => setAppState({ screen: "bodymap" })} className="btn btn-primary w-full">
+                  <button type="button" onClick={() => setAppState({ screen: "bodymap" })} className="btn btn-secondary w-full">
                     Use the body map instead
                   </button>
                 </div>
