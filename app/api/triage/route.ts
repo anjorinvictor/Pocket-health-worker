@@ -18,6 +18,7 @@ import { SYSTEM_PROMPT } from "@/lib/triage/prompts";
 import { parseGeminiResponse } from "@/lib/triage/schema";
 import { mergeUrgency } from "@/lib/triage/urgency";
 import { shouldForceResult } from "@/lib/triage/flow";
+import { track } from "@/lib/telemetry";
 import facilityGuidance from "@/data/facility-guidance.json";
 import type { ChatTurn, TriageResult, TriageResponse } from "@/types";
 
@@ -121,6 +122,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     const latestUserMessage = [...history].reverse().find((t) => t.role === "user")?.content ?? "";
 
     if (isCrisis(latestUserMessage)) {
+      track({ name: "crisis_intercepted", mode: "online" });
       return NextResponse.json({ kind: "crisis" });
     }
 
@@ -130,6 +132,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
       .join(" ");
     const redFlag = checkRedFlags(allUserText);
     if (redFlag) {
+      track({ name: "red_flag_detected", flag: redFlag.label, mode: "online" });
       return NextResponse.json({ kind: "emergency", matched: redFlag.label });
     }
 
@@ -161,9 +164,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     result.recommendedAction =
       `${guidance.headline}\n\n${guidance.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}\n\n${guidance.escalateIf}`;
 
+    track({ name: "triage_completed", urgency: finalUrgency, mode: "online" });
     return NextResponse.json({ kind: "result", result });
   } catch (err) {
     console.error("Triage route error:", err);
+    track({ name: "triage_error", stage: "route" });
     return NextResponse.json({ kind: "result", result: FALLBACK_RESULT });
   }
 }

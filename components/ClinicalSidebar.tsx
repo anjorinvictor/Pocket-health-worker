@@ -12,6 +12,7 @@
 "use client";
 
 import { useState } from "react";
+import { nearestState } from "@/lib/geo/nearestState";
 
 interface PHC {
   name: string;
@@ -96,6 +97,32 @@ export default function ClinicalSidebar({ dataSaver, onToggleDataSaver }: Props)
   
   // PHC State
   const [selectedState, setSelectedState] = useState("Lagos");
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const handleUseLocation = () => {
+    setGeoError(null);
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoError("Location isn't available on this device. Please pick your state manually.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const state = nearestState(
+          { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          Object.keys(PHC_DIRECTORY)
+        );
+        setSelectedState(state);
+        setLocating(false);
+      },
+      () => {
+        setGeoError("Couldn't get your location. Please pick your state manually.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+    );
+  };
 
   const handleVerifyNAFDAC = () => {
     const trimmed = pin.trim();
@@ -226,6 +253,32 @@ export default function ClinicalSidebar({ dataSaver, onToggleDataSaver }: Props)
             ))}
           </select>
         </div>
+
+        <button
+          onClick={handleUseLocation}
+          disabled={locating}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+        >
+          {locating ? (
+            <>
+              <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full animate-ping" />
+              Finding your nearest state…
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
+              Use my location
+            </>
+          )}
+        </button>
+
+        {geoError && (
+          <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 font-semibold leading-relaxed">
+            {geoError}
+          </p>
+        )}
 
         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
           {PHC_DIRECTORY[selectedState].map((phc, idx) => (

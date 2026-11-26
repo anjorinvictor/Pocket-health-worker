@@ -11,9 +11,12 @@
 
 "use client";
 
+import { useState } from "react";
 import type { OfflineTriageResult } from "@/lib/triage/offlineTriage";
+import { nearestState } from "@/lib/geo/nearestState";
 import UrgencyBadge from "./UrgencyBadge";
 import EmergencyBanner from "./EmergencyBanner";
+import ConnectHealthWorker from "./ConnectHealthWorker";
 
 interface PHC {
   name: string;
@@ -96,9 +99,33 @@ interface Props {
 export default function OfflineResultCard({ result, onReset }: Props) {
   const isRed = result.urgencyLevel === "RED";
 
-  /* ── Inline PHC directory ──────────────────────────────────── */
+  /* ── Inline PHC directory (works offline — GPS needs no internet) ─── */
   const stateKeys = Object.keys(PHC_DIRECTORY);
-  const defaultState = stateKeys[0];
+  const [selectedState, setSelectedState] = useState(stateKeys[0]);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const handleUseLocation = () => {
+    setGeoError(null);
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoError("Location isn't available on this device. Please pick your state manually.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setSelectedState(
+          nearestState({ lat: pos.coords.latitude, lng: pos.coords.longitude }, stateKeys)
+        );
+        setLocating(false);
+      },
+      () => {
+        setGeoError("Couldn't get your location. Please pick your state manually.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+    );
+  };
 
   return (
     <div className="w-full max-w-lg mx-auto px-4 py-6 space-y-6 animate-fade-in">
@@ -219,58 +246,72 @@ export default function OfflineResultCard({ result, onReset }: Props) {
         </div>
 
         <select
-          defaultValue={defaultState}
-          id="offline-phc-state"
+          value={selectedState}
+          onChange={(e) => setSelectedState(e.target.value)}
           className="w-full px-3 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl focus:outline-none bg-slate-50 cursor-pointer"
-          onChange={(e) => {
-            const list = document.getElementById("offline-phc-list");
-            if (list) {
-              const cards = list.querySelectorAll("[data-state]");
-              cards.forEach((card) => {
-                const el = card as HTMLElement;
-                el.style.display = el.dataset.state === e.target.value ? "block" : "none";
-              });
-            }
-          }}
         >
           {stateKeys.map((state) => (
             <option key={state} value={state}>{state}</option>
           ))}
         </select>
 
-        <div id="offline-phc-list" className="space-y-2 max-h-64 overflow-y-auto pr-1">
-          {stateKeys.map((state) =>
-            PHC_DIRECTORY[state].map((phc, idx) => (
-              <div
-                key={`${state}-${idx}`}
-                data-state={state}
-                style={{ display: state === defaultState ? "block" : "none" }}
-                className="p-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-xl space-y-1.5 transition-all duration-200"
-              >
-                <div className="flex justify-between items-start gap-1">
-                  <p className="text-[11px] font-bold text-slate-700 leading-tight">{phc.name}</p>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white border border-slate-100 text-slate-400 uppercase tracking-wide rounded-md flex-shrink-0">
-                    {phc.type.split(" / ")[0]}
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-                  {phc.address}
-                </p>
-                <a
-                  href={`tel:${phc.phone.replace(/\s+/g, "")}`}
-                  className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 hover:underline flex items-center gap-1 mt-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" /></svg>
-                  Call: {phc.phone}
-                </a>
-              </div>
-            ))
+        <button
+          onClick={handleUseLocation}
+          disabled={locating}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
+        >
+          {locating ? (
+            <>
+              <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full animate-ping" />
+              Finding your nearest state…
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+                <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+              </svg>
+              Use my location
+            </>
           )}
+        </button>
+
+        {geoError && (
+          <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 font-semibold leading-relaxed">
+            {geoError}
+          </p>
+        )}
+
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {PHC_DIRECTORY[selectedState].map((phc, idx) => (
+            <div
+              key={idx}
+              className="p-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-xl space-y-1.5 transition-all duration-200"
+            >
+              <div className="flex justify-between items-start gap-1">
+                <p className="text-[11px] font-bold text-slate-700 leading-tight">{phc.name}</p>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-white border border-slate-100 text-slate-400 uppercase tracking-wide rounded-md flex-shrink-0">
+                  {phc.type.split(" / ")[0]}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                {phc.address}
+              </p>
+              <a
+                href={`tel:${phc.phone.replace(/\s+/g, "")}`}
+                className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 hover:underline flex items-center gap-1 mt-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clipRule="evenodd" /></svg>
+                Call: {phc.phone}
+              </a>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-2 pt-2">
+        {/* Escalate to a human — shown on YELLOW / RED only (roadmap stub) */}
+        {result.urgencyLevel !== "GREEN" && <ConnectHealthWorker />}
         <button
           onClick={onReset}
           className="w-full py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider hover:bg-slate-100 active:scale-[0.99] transform transition-all duration-200 cursor-pointer shadow-sm text-center flex items-center justify-center gap-1.5"

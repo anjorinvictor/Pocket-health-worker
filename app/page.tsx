@@ -29,6 +29,7 @@ import { isCrisis } from "@/lib/safety/crisis";
 import { checkRedFlags } from "@/lib/safety/redFlags";
 import { runOfflineTriage } from "@/lib/triage/offlineTriage";
 import type { OfflineTriageResult } from "@/lib/triage/offlineTriage";
+import { track } from "@/lib/telemetry";
 
 type AppState =
   | { screen: "welcome" }
@@ -120,6 +121,7 @@ export default function Home() {
       if (isOffline || !navigator.onLine) {
         // Still run crisis check on free-text
         if (isCrisis(structuredData.additionalText)) {
+          track({ name: "crisis_intercepted", mode: "offline" });
           setAppState({ screen: "crisis" });
           setLoading(false);
           return;
@@ -137,6 +139,7 @@ export default function Home() {
           additionalText: structuredData.additionalText,
         });
 
+        track({ name: "triage_completed", urgency: offlineResult.urgencyLevel, mode: "offline" });
         setAppState({ screen: "offlineResult", result: offlineResult });
         setLoading(false);
         return;
@@ -208,12 +211,14 @@ export default function Home() {
       if (isOffline || !navigator.onLine) {
         const allText = newHistory.map(t => t.content).join(" ");
         if (isCrisis(text)) {
+          track({ name: "crisis_intercepted", mode: "offline" });
           setAppState({ screen: "crisis" });
           setLoading(false);
           return;
         }
         const redFlag = checkRedFlags(allText);
         if (redFlag) {
+          track({ name: "red_flag_detected", flag: redFlag.label, mode: "offline" });
           setAppState({ screen: "emergency", message: redFlag.label });
           setLoading(false);
           return;
@@ -321,13 +326,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Honest Offline Banner */}
+      {/* Calm Offline Indicator — makes the "kill-the-wifi, it-still-works" moment obvious */}
       {isOffline && (
-        <div className="w-full bg-slate-800 text-white text-xs font-medium px-4 py-3 flex items-center justify-center gap-2 z-40 relative">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-slate-400">
+        <div className="w-full bg-slate-800 text-white text-xs font-medium px-4 py-3 flex items-center justify-center gap-2.5 z-40 relative">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" aria-hidden />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-slate-400 flex-shrink-0">
             <path fillRule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v9a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.166 5.106a.75.75 0 0 1 0 1.06 8.25 8.25 0 1 0 11.668 0 .75.75 0 1 1 1.06-1.06c3.808 3.807 3.808 9.98 0 13.788-3.807 3.808-9.98 3.808-13.788 0-3.808-3.807-3.808-9.98 0-13.788a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
           </svg>
-          You're offline. Full AI triage needs an internet connection — but you can still find your nearest clinic below, and this app will still flag emergency danger signs.
+          <span className="text-center">
+            <span className="font-bold">Offline — running locally, no internet needed.</span>{" "}
+            Emergency danger-sign checks and your nearest clinics still work right here.
+          </span>
         </div>
       )}
 

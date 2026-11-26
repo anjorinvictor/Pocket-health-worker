@@ -66,12 +66,20 @@ export default function CrisisSupport({ onReset }: Props) {
               <span className="text-base flex-shrink-0" aria-hidden>📞</span>
               <div>
                 <p className="font-semibold text-slate-800 text-xs">SURPIN (Suicide Research & Prevention Initiative)</p>
-                <a
-                  href="tel:080000787746"
-                  className="font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors mt-0.5 inline-block text-sm"
-                >
-                  0800 0078 7746
-                </a>
+                <div className="flex flex-col gap-1 mt-0.5">
+                  <a
+                    href="tel:08000787746"
+                    className="font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors text-sm"
+                  >
+                    0800 078 7746 (toll-free)
+                  </a>
+                  <a
+                    href="tel:09080217555"
+                    className="font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors text-sm"
+                  >
+                    0908 021 7555
+                  </a>
+                </div>
               </div>
             </div>
           </div>

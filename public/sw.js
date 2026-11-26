@@ -1,78 +1,100 @@
-const CACHE_NAME = 'phw-cache-v1';
+/**
+ * Pocket Health Worker — Service Worker (offline-first PWA shell)
+ *
+ * Strategy:
+ *  - App shell + known static assets are precached on install (cache-first).
+ *  - Next.js hashed chunks / CSS / images are cached lazily via stale-while-revalidate,
+ *    so after ONE online load the whole UI keeps working with NO network: the body map,
+ *    the offline deterministic triage engine, the 12-state PHC directory, and the
+ *    emergency bridge are all client-side, so nothing else needs to be fetched.
+ *  - Page navigations fall back to the cached app shell ("/"), so an offline refresh
+ *    still boots the app.
+ *  - The Gemini triage API is NEVER cached — it is network-only so we never serve a
+ *    stale AI answer. When offline the client falls back to the deterministic engine
+ *    BEFORE it ever calls the network, so this route simply fails fast and clean.
+ */
 
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/icon.svg',
-  '/favicon.ico'
-];
+const CACHE_NAME = 'phw-cache-v2';
+
+// Assets we know exist at build time. Next.js content-hashed chunks under
+// /_next/static are cached lazily on first load (see stale-while-revalidate below).
+const APP_SHELL = ['/', '/manifest.json', '/icon.svg', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Precache basic assets so app opens offline
-      // We don't precache Next.js _next/static JS here automatically 
-      // as they have hashes, we let them be cached lazily below.
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      // allSettled so one unavailable asset can't abort the whole precache
+      Promise.allSettled(APP_SHELL.map((url) => cache.add(url)))
+    )
   );
 });
 
 self.addEventListener('activate', (event) => {
-  // Clean up old caches
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+// Stale-while-revalidate: serve from cache immediately, refresh in the background.
+function staleWhileRevalidate(request) {
+  return caches.match(request).then((cached) => {
+    const network = fetch(request)
+      .then((response) => {
+        // Only cache successful, same-origin ("basic") responses.
+        if (response && response.status === 200 && response.type === 'basic') {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() => cached);
+    return cached || network;
+  });
+}
 
-  // 1. Triage API MUST never be stale
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+
+  // Only GET responses are cacheable. Let POST (the triage call) pass straight
+  // through to the network untouched.
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+
+  // 1. Gemini triage API — network-only, never cached (no stale AI answers).
   if (url.pathname === '/api/triage') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        // Return explicit 503 so client knows we failed gracefully due to network
-        return new Response(JSON.stringify({ error: "Offline" }), {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
+      fetch(request).catch(
+        () =>
+          new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
     );
     return;
   }
 
-  // 2. Static Assets (Next.js internals, images, CSS) -> Stale-While-Revalidate
-  if (event.request.method === 'GET') {
+  // 2. Page navigations — serve the app shell so an offline refresh still boots.
+  if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            // Update cache in the background
-            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => {
-            // If network fails, just ignore and let it use cache (if we returned cachedResponse)
-          });
-
-        return cachedResponse || fetchPromise;
-      })
+      staleWhileRevalidate(request)
+        .then((response) => response || caches.match('/'))
+        .catch(() => caches.match('/'))
     );
+    return;
+  }
+
+  // 3. Everything else same-origin (JS chunks, CSS, fonts, images) — SWR.
+  if (url.origin === self.location.origin) {
+    event.respondWith(staleWhileRevalidate(request));
   }
 });

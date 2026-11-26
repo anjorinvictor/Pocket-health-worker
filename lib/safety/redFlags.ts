@@ -8,6 +8,7 @@
 
 import redFlagsData from "@/data/red-flags.json";
 import type { RedFlag } from "@/types";
+import { normalizeText } from "./normalize";
 
 const RED_FLAGS: RedFlag[] = redFlagsData as RedFlag[];
 
@@ -20,10 +21,10 @@ const RED_FLAGS: RedFlag[] = redFlagsData as RedFlag[];
  * @returns The first matching red flag object, or null if none are detected.
  */
 export function checkRedFlags(userText: string): RedFlag | null {
-  const lower = userText.toLowerCase();
+  const normalized = normalizeText(userText);
   for (const flag of RED_FLAGS) {
     for (const keyword of flag.matchKeywords) {
-      if (lower.includes(keyword.toLowerCase())) {
+      if (normalized.includes(normalizeText(keyword))) {
         return flag;
       }
     }
