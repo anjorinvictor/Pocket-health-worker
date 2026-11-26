@@ -9,6 +9,7 @@
 
 import DataSaverToggle from "./DataSaverToggle";
 import FacilityFinder from "./FacilityFinder";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   dataSaver: boolean;
@@ -18,8 +19,9 @@ interface Props {
 }
 
 export default function ClinicalSidebar({ dataSaver, onToggleDataSaver, selectedState, onStateChange }: Props) {
+  const { t } = useI18n();
   return (
-    <aside aria-label="Health tools" className="space-y-4">
+    <aside aria-label={t("healthTools")} className="space-y-4">
       <div className="card p-5">
         <DataSaverToggle on={dataSaver} onChange={onToggleDataSaver} />
       </div>

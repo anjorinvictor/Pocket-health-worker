@@ -10,6 +10,7 @@
 import { useEffect, useRef } from "react";
 import type { ChatTurn } from "@/types";
 import MessageBubble from "./MessageBubble";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   history: ChatTurn[];
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function ChatWindow({ history, loading }: Props) {
+  const { t } = useI18n();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,21 +28,18 @@ export default function ChatWindow({ history, loading }: Props) {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold">Tell me what&rsquo;s wrong</h1>
-        <p className="text-muted">
-          Describe how you or the person you care for feels, in your own words. I&rsquo;ll ask a few short
-          questions, then tell you how urgent it is and where to go.
-        </p>
+        <h1 className="text-2xl font-bold">{t("chatTitle")}</h1>
+        <p className="text-muted">{t("chatIntro")}</p>
       </div>
 
-      <div role="log" aria-live="polite" aria-label="Conversation" className="space-y-4">
+      <div role="log" aria-live="polite" aria-label={t("chatLog")} className="space-y-4">
         {history.map((turn, i) => (
           <MessageBubble key={i} turn={turn} />
         ))}
         {loading && (
           <div className="flex justify-start">
             <p className="rounded-2xl rounded-bl-sm bg-sand px-4 py-3 text-muted">
-              Checking your answers<span aria-hidden>…</span>
+              {t("chatChecking")}<span aria-hidden>…</span>
             </p>
           </div>
         )}

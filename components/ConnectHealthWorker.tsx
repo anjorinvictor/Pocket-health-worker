@@ -9,8 +9,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export default function ConnectHealthWorker() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -19,7 +21,10 @@ export default function ConnectHealthWorker() {
     if (!open) return;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -33,7 +38,7 @@ export default function ConnectHealthWorker() {
   return (
     <>
       <button ref={triggerRef} type="button" onClick={() => setOpen(true)} className="btn btn-secondary w-full">
-        Connect to a health worker
+        {t("connectButton")}
       </button>
 
       {open && (
@@ -50,25 +55,20 @@ export default function ConnectHealthWorker() {
             className="w-full max-w-md card p-6 space-y-4 animate-fade-in"
           >
             <div className="flex items-start justify-between gap-3">
-              <h2 id="chw-title" className="text-xl font-bold">Connect to a health worker</h2>
+              <h2 id="chw-title" className="text-xl font-bold">{t("connectButton")}</h2>
               <span className="shrink-0 rounded-full bg-clinic-soft text-clinic text-sm font-bold px-3 py-1">
-                Coming soon
+                {t("comingSoon")}
               </span>
             </div>
-            <p>
-              Soon you will be able to share this check, with your permission, with a trained Community Health
-              Worker near you for a follow-up, a referral, or help getting to care.
-            </p>
+            <p>{t("connectBody")}</p>
             <ul className="list-disc pl-5 space-y-1 text-muted">
-              <li>Hand your check to a health worker, only if you agree</li>
-              <li>Follow-up by SMS or WhatsApp, even on a basic phone</li>
-              <li>Referral to the nearest PHC or hospital</li>
+              <li>{t("connectPoint1")}</li>
+              <li>{t("connectPoint2")}</li>
+              <li>{t("connectPoint3")}</li>
             </ul>
-            <p className="text-sm text-muted">
-              This is not available yet. If you need care now, use the hospital list and 112.
-            </p>
+            <p className="text-sm text-muted">{t("connectNotYet")}</p>
             <button ref={closeRef} type="button" onClick={close} className="btn btn-primary w-full">
-              Got it
+              {t("gotIt")}
             </button>
           </div>
         </div>

@@ -9,37 +9,33 @@
 
 "use client";
 
-import type { RulesResult } from "@/types";
+import type { HandoverInfo, RulesResult } from "@/types";
+import type { StringKey } from "@/lib/i18n/strings";
+import { useI18n } from "@/lib/i18n";
 import UrgencyBadge from "./UrgencyBadge";
 import EmergencyBanner from "./EmergencyBanner";
 import ConnectHealthWorker from "./ConnectHealthWorker";
+import NurseCard from "./NurseCard";
 import { PhoneIcon } from "./Icons";
 import { NATIONAL_EMERGENCY } from "@/data/emergency-lines";
 
 export type RulesReason = "offline" | "dataSaver" | "unavailable";
 
-const REASON: Record<RulesReason, { title: string; body: string }> = {
-  offline: {
-    title: "Checked on your phone, with no internet",
-    body: "This answer comes from fixed safety rules that work offline. When you have signal, you can also describe it in your own words for a fuller check.",
-  },
-  dataSaver: {
-    title: "Checked on your phone (Data Saver)",
-    body: "Data Saver is on, so fixed safety rules on your phone gave this answer without using data.",
-  },
-  unavailable: {
-    title: "Checked on your phone",
-    body: "The full assistant could not be reached just now, so fixed safety rules on your phone gave this answer.",
-  },
+const REASON: Record<RulesReason, { title: StringKey; body: StringKey }> = {
+  offline: { title: "reasonOfflineTitle", body: "reasonOfflineBody" },
+  dataSaver: { title: "reasonDataSaverTitle", body: "reasonDataSaverBody" },
+  unavailable: { title: "reasonUnavailableTitle", body: "reasonUnavailableBody" },
 };
 
 interface Props {
   result: RulesResult;
   reason: RulesReason;
+  handover: HandoverInfo;
   onReset: () => void;
 }
 
-export default function OfflineResultCard({ result, reason, onReset }: Props) {
+export default function OfflineResultCard({ result, reason, handover, onReset }: Props) {
+  const { t, tx } = useI18n();
   const isRed = result.urgencyLevel === "RED";
   const why = REASON[reason];
 
@@ -49,53 +45,51 @@ export default function OfflineResultCard({ result, reason, onReset }: Props) {
         <>
           <EmergencyBanner />
           <a href={`tel:${NATIONAL_EMERGENCY.tel}`} className="btn btn-danger w-full text-lg min-h-14">
-            <PhoneIcon className="w-6 h-6" /> Call {NATIONAL_EMERGENCY.display}
+            <PhoneIcon className="w-6 h-6" /> {t("callN", { n: NATIONAL_EMERGENCY.display })}
           </a>
         </>
       )}
 
       <div role="note" className="rounded-2xl bg-clinic-soft text-clinic p-4">
-        <p className="font-bold">{why.title}</p>
-        <p className="mt-1">{why.body}</p>
+        <p className="font-bold">{t(why.title)}</p>
+        <p className="mt-1">{t(why.body)}</p>
       </div>
 
       <article className="card p-5 sm:p-6 space-y-6" aria-labelledby="rules-title">
         <div className="space-y-3">
           <UrgencyBadge level={result.urgencyLevel} />
           {isRed ? (
-            <h2 id="rules-title" className="text-2xl font-bold">{result.headline}</h2>
+            <h2 id="rules-title" className="text-2xl font-bold">{tx(result.headline)}</h2>
           ) : (
-            <h1 id="rules-title" className="text-3xl font-bold">{result.headline}</h1>
+            <h1 id="rules-title" className="text-3xl font-bold">{tx(result.headline)}</h1>
           )}
         </div>
 
         <section className="space-y-1.5">
-          <h2 className="text-lg font-bold">What to do</h2>
-          <p className="text-lg">{result.details}</p>
+          <h2 className="text-lg font-bold">{t("whatToDo")}</h2>
+          <p className="text-lg">{tx(result.details)}</p>
         </section>
 
         {result.warningSignsToWatch.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-lg font-bold">Get help sooner if</h2>
+            <h2 className="text-lg font-bold">{t("getHelpSoonerIf")}</h2>
             <ul className="list-disc pl-5 space-y-1">
               {result.warningSignsToWatch.map((sign) => (
-                <li key={sign}>{sign}</li>
+                <li key={sign}>{tx(sign)}</li>
               ))}
             </ul>
           </section>
         )}
 
-        <p className="border-t border-line pt-4 text-sm text-muted">
-          This check uses general safety rules and only what you told us. It is not a diagnosis and does not replace a
-          health worker. If you are worried, get care.
-        </p>
+        <p className="border-t border-line pt-4 text-sm text-muted">{t("rulesDisclaimer")}</p>
       </article>
 
       <div className="grid grid-cols-1 gap-3">
         {result.urgencyLevel !== "GREEN" && <ConnectHealthWorker />}
+        <NurseCard info={handover} urgency={result.urgencyLevel} />
         {/* The only next step on this screen, so it is the screen's one primary action. */}
         <button type="button" onClick={onReset} className="btn btn-primary w-full">
-          Start a new check
+          {t("startNewCheck")}
         </button>
       </div>
     </div>

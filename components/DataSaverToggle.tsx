@@ -10,6 +10,8 @@
 
 "use client";
 
+import { useI18n } from "@/lib/i18n";
+
 interface Props {
   on: boolean;
   onChange: (on: boolean) => void;
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export default function DataSaverToggle({ on, onChange, variant = "row" }: Props) {
+  const { t } = useI18n();
   if (variant === "header") {
     return (
       <button
@@ -28,7 +31,7 @@ export default function DataSaverToggle({ on, onChange, variant = "row" }: Props
         className="btn btn-on-dark rounded-full px-3.5 text-sm"
       >
         <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${on ? "bg-espresso" : "border border-cream"}`} />
-        Data Saver {on ? "on" : "off"}
+        {on ? t("dataSaverOn") : t("dataSaverOff")}
       </button>
     );
   }
@@ -36,9 +39,9 @@ export default function DataSaverToggle({ on, onChange, variant = "row" }: Props
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h2 id="ds-label" className="text-xl font-bold">Data Saver</h2>
+        <h2 id="ds-label" className="text-xl font-bold">{t("dataSaver")}</h2>
         <p id="ds-desc" className="text-sm text-muted mt-0.5">
-          Uses less data: emergencies are answered on your phone, and AI answers are kept short.
+          {t("dataSaverDesc")}
         </p>
       </div>
       <button
@@ -61,7 +64,7 @@ export default function DataSaverToggle({ on, onChange, variant = "row" }: Props
             }`}
           />
         </span>
-        <span className="sr-only">{on ? "On" : "Off"}</span>
+        <span className="sr-only">{on ? t("on") : t("off")}</span>
       </button>
     </div>
   );

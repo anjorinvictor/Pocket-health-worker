@@ -156,3 +156,23 @@ describe("offline engine — regressions found in discovery (2026-11-26)", () =>
     expect(r.urgencyLevel).toBe("YELLOW");
   });
 });
+
+describe("emergencies say which danger sign fired (first-aid steps)", () => {
+  it("infant with fever → infant", () => {
+    const r = runOfflineTriage(input({ region: "head", symptoms: ["Fever"], ageGroup: "Infant (0-1)" }));
+    expect(r.urgencyLevel).toBe("RED");
+    expect(r.sign).toBe("infant");
+  });
+  it("pregnant + heavy bleeding → a red flag id (bleeding or pregnancy)", () => {
+    const r = runOfflineTriage(input({ biologicalSex: "Female (Pregnant)", additionalText: "I am bleeding heavily" }));
+    expect(r.urgencyLevel).toBe("RED");
+    expect(["bleeding", "pregnancy"]).toContain(r.sign);
+  });
+  it("chest pain → chest_pain", () => {
+    const r = runOfflineTriage(input({ region: "chest", symptoms: ["Chest pain / Tightness"], ageGroup: "Middle-aged (41-60)" }));
+    expect(r.sign).toBe("chest_pain");
+  });
+  it("non-RED results carry no sign", () => {
+    expect(runOfflineTriage(input({ region: "left_arm" })).sign).toBeUndefined();
+  });
+});

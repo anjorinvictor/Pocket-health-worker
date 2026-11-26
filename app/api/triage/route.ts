@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { isCrisis } from "@/lib/safety/crisis";
 import { checkRedFlags } from "@/lib/safety/redFlags";
-import { EMERGENCY_EXPLAIN, SYSTEM_PROMPT, SYSTEM_PROMPT_COMPACT, groundingCorrection } from "@/lib/triage/prompts";
+import { EMERGENCY_EXPLAIN, PIDGIN_RULE, SYSTEM_PROMPT, SYSTEM_PROMPT_COMPACT, groundingCorrection } from "@/lib/triage/prompts";
 import { parseGeminiResponse } from "@/lib/triage/schema";
 import { raiseUrgency } from "@/lib/triage/urgency";
 import { shouldForceResult } from "@/lib/triage/flow";
@@ -25,6 +25,7 @@ import { findInventedConditions } from "@/lib/triage/grounding";
 import { DURATIONS, SEVERITIES } from "@/lib/triage/options";
 import { track } from "@/lib/telemetry";
 import facilityGuidance from "@/data/facility-guidance.json";
+import facilityGuidancePcm from "@/data/facility-guidance.pcm.json";
 import type { ChatTurn, StructuredInput, TriageResult, TriageResponse } from "@/types";
 
 /**
@@ -89,7 +90,7 @@ function isRetryable(err: unknown): boolean {
 async function callGemini(
   client: GoogleGenAI,
   history: ChatTurn[],
-  opts: { forceResult: boolean; dataSaver: boolean; correction?: string; emergencyExplain?: boolean }
+  opts: { forceResult: boolean; dataSaver: boolean; correction?: string; emergencyExplain?: boolean; pidgin?: boolean }
 ): Promise<string> {
   const contents = history.map((turn) => ({
     role: turn.role === "user" ? "user" : "model",
@@ -102,6 +103,7 @@ async function callGemini(
       "\n\nYou have asked enough follow-up questions. Give the final assessment JSON now (not a followup). If unsure, choose the higher urgency.";
   }
   if (opts.emergencyExplain) systemInstruction += `\n\n${EMERGENCY_EXPLAIN}`;
+  if (opts.pidgin) systemInstruction += `\n\n${PIDGIN_RULE}`;
   if (opts.correction) systemInstruction += `\n\n${opts.correction}`;
 
   const started = Date.now();
@@ -145,6 +147,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     structured = isStructuredInput(body.structured) ? body.structured : null;
     /** The phone already showed the emergency screen; it only wants the AI's explanation. */
     const explain = body.explain === true;
+    const pidgin = body.lang === "pcm";
 
     if (history.length === 0) {
       return NextResponse.json({ kind: "followup", question: "Please describe how you're feeling." });
@@ -164,7 +167,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     const redFlag = checkRedFlags(allUserText);
     if (redFlag && !explain) {
       track({ name: "red_flag_detected", flag: redFlag.label, mode: "online" });
-      return NextResponse.json({ kind: "emergency", matched: redFlag.label });
+      return NextResponse.json({ kind: "emergency", matched: redFlag.message, flag: redFlag.id });
     }
 
     // 3. Deterministic floor from body-map answers. Online, severity alone is a YELLOW floor and
@@ -172,7 +175,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     const floor = structured ? runOfflineTriage(structured, { severityEscalates: false }) : null;
     if (floor?.urgencyLevel === "RED" && !explain) {
       track({ name: "red_flag_detected", flag: "rules_floor", mode: "online" });
-      return NextResponse.json({ kind: "emergency", matched: floor.details.split(". ")[0] });
+      return NextResponse.json({ kind: "emergency", matched: floor.details.split(". ")[0] + ".", flag: floor.sign });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -187,7 +190,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     const client = new GoogleGenAI({ apiKey });
     const forceResult = shouldForceResult({ stage: "followup", followupCount });
     let parsed = parseGeminiResponse(
-      await callGemini(client, history, { forceResult: forceResult || explain, dataSaver, emergencyExplain: explain })
+      await callGemini(client, history, { forceResult: forceResult || explain, dataSaver, emergencyExplain: explain, pidgin })
     );
 
     // 5. Grounding: never let the AI assert history the person did not give. One retry.
@@ -200,6 +203,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
             forceResult: true,
             dataSaver,
             emergencyExplain: explain,
+            pidgin,
             correction: groundingCorrection(invented),
           })
         );
@@ -227,7 +231,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<TriageRespons
     result.urgencyLevel = finalUrgency;
     if (dataSaver && result.generalCauses) result.generalCauses = result.generalCauses.slice(0, 3);
 
-    const guidance = facilityGuidance[finalUrgency];
+    const guidance = (pidgin ? facilityGuidancePcm : facilityGuidance)[finalUrgency];
     result.recommendedAction = `${guidance.headline}\n\n${guidance.steps
       .map((s, i) => `${i + 1}. ${s}`)
       .join("\n")}\n\n${guidance.escalateIf}`;

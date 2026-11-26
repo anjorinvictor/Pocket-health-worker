@@ -5,7 +5,10 @@
  * depends on colour alone (house = home care, cross = clinic, triangle = emergency).
  */
 
+"use client";
+
 import type { UrgencyLevel } from "@/types";
+import { useI18n } from "@/lib/i18n";
 import { AlertIcon, ClinicIcon, HomeIcon } from "./Icons";
 
 const CONFIG: Record<UrgencyLevel, { label: string; classes: string; Icon: typeof HomeIcon }> = {
@@ -21,7 +24,9 @@ export const URGENCY_LABEL: Record<UrgencyLevel, string> = {
 };
 
 export default function UrgencyBadge({ level }: { level: UrgencyLevel }) {
-  const { label, classes, Icon } = CONFIG[level];
+  const { t } = useI18n();
+  const { classes, Icon } = CONFIG[level];
+  const label = t(`urgency${level}`);
   return (
     <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-bold ${classes}`}>
       <Icon className="w-4 h-4" />

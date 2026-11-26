@@ -13,10 +13,12 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 const GREENBOOK_URL = "https://greenbook.nafdac.gov.ng/";
 
 export default function NafdacCheck() {
+  const { t } = useI18n();
   const [pin, setPin] = useState("");
   const [shortCode, setShortCode] = useState("");
   const [nrn, setNrn] = useState("");
@@ -52,32 +54,32 @@ export default function NafdacCheck() {
           if (smsReady) window.location.href = smsHref;
         }}
       >
-        <h2 className="text-xl font-bold">1. Scratch code on the pack</h2>
-        <p className="text-sm text-muted -mt-2">The strongest check. Works without data.</p>
+        <h2 className="text-xl font-bold">{t("masTitle")}</h2>
+        <p className="text-sm text-muted -mt-2">{t("masStrongest")}</p>
         <div>
           <label htmlFor="mas-pin" className="block text-sm font-semibold text-muted mb-1.5">
-            PIN under the scratch panel
+            {t("masPin")}
           </label>
           <input
             id="mas-pin"
             className="field"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="Numbers only"
+            placeholder={t("masPinPlaceholder")}
             value={pin}
             onChange={(e) => setPin(e.target.value)}
           />
         </div>
         <div>
           <label htmlFor="mas-code" className="block text-sm font-semibold text-muted mb-1.5">
-            Short code printed beside the panel
+            {t("masCode")}
           </label>
           <input
             id="mas-code"
             className="field"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="For example 38353"
+            placeholder={t("masCodePlaceholder")}
             value={shortCode}
             onChange={(e) => setShortCode(e.target.value)}
           />
@@ -88,41 +90,34 @@ export default function NafdacCheck() {
           onClick={(e) => { if (!smsReady) e.preventDefault(); }}
           className="btn btn-primary w-full"
         >
-          Open SMS to send the PIN
+          {t("masOpenSms")}
         </a>
-        <p className="text-sm text-muted">
-          Your phone texts the PIN to NAFDAC&apos;s verification service. The reply SMS tells you if the
-          medicine is genuine. Texting the PIN is free and works without data.
-        </p>
+        <p className="text-sm text-muted">{t("masNote")}</p>
       </form>
 
       {/* 2. Registration number */}
       <div className="space-y-3 border-t border-line pt-5">
-        <h2 className="text-xl font-bold">2. NAFDAC registration number</h2>
+        <h2 className="text-xl font-bold">{t("nrnTitle")}</h2>
         <div>
           <label htmlFor="nrn" className="block text-sm font-semibold text-muted mb-1.5">
-            NAFDAC Reg. No. on the pack
+            {t("nrnLabel")}
           </label>
           <input
             id="nrn"
             className="field"
             autoComplete="off"
-            placeholder="For example A4-1234"
+            placeholder={t("nrnPlaceholder")}
             value={nrn}
             onChange={(e) => { setNrn(e.target.value); setCopied(false); }}
           />
         </div>
         <button type="button" onClick={openGreenbook} className="btn btn-secondary w-full">
-          Search NAFDAC Greenbook
+          {t("nrnSearch")}
         </button>
         <p role="status" className="text-sm text-muted">
-          {copied
-            ? "Number copied. Paste it into the “NAFDAC Reg. No.” box on the Greenbook page."
-            : "Opens NAFDAC's official list of registered medicines (needs data)."}
+          {copied ? t("nrnCopied") : t("nrnNote")}
         </p>
-        <p className="text-sm text-muted">
-          Fakers sometimes copy real registration numbers, so the scratch-code check is the stronger test.
-        </p>
+        <p className="text-sm text-muted">{t("nrnFakers")}</p>
       </div>
     </div>
   );

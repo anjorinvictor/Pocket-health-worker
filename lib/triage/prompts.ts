@@ -57,3 +57,6 @@ export function groundingCorrection(invented: string[]): string {
 
 /** Appended when the deterministic rules have already decided this is an emergency. */
 export const EMERGENCY_EXPLAIN = `Safety rules have already decided this is an EMERGENCY and the person is being told to go to hospital now. Do not ask a follow-up question and do not lower the urgency: give the final assessment JSON with "urgencyLevel": "RED". Explain in plain words what is most likely going on and why it is dangerous, so they understand why they must go now.`;
+
+/** Appended when the person chose Nigerian Pidgin. JSON keys and urgency values stay in English. */
+export const PIDGIN_RULE = `Language: the person chose Nigerian Pidgin. Write every text value (likelyCondition, assessment, reasoning, generalCauses, followup, disclaimer) in simple, clear Nigerian Pidgin English, the way people speak it in Lagos. Keep well-known illness names as Nigerians say them (e.g. "Malaria", "Typhoid", "Ulcer"). Keep the JSON keys and the urgencyLevel values (GREEN, YELLOW, RED) exactly in English.`;

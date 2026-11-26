@@ -14,11 +14,11 @@
  *    BEFORE it ever calls the network, so this route simply fails fast and clean.
  */
 
-const CACHE_NAME = 'phw-cache-v3';
+const CACHE_NAME = 'phw-cache-v4';
 
 // Assets we know exist at build time. Next.js content-hashed chunks under
 // /_next/static are cached lazily on first load (see stale-while-revalidate below).
-const APP_SHELL = ['/', '/manifest.json', '/icon.svg', '/favicon.ico'];
+const APP_SHELL = ['/', '/manifest.json', '/icon.svg', '/icon-192.png', '/icon-512.png', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

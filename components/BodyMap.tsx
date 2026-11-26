@@ -11,7 +11,8 @@
 
 import { useState } from "react";
 import type { StructuredInput } from "@/types";
-import { AGE_GROUPS, CONDITIONS, DURATIONS, SEVERITIES, SEX_OPTIONS } from "@/lib/triage/options";
+import { AGE_GROUPS, CONDITIONS, DURATIONS, REGION_LABELS, SEVERITIES, SEX_OPTIONS } from "@/lib/triage/options";
+import { useI18n } from "@/lib/i18n";
 import { ArrowLeftIcon, ArrowRightIcon } from "./Icons";
 
 export type BodyMapStructuredData = StructuredInput;
@@ -44,13 +45,7 @@ const REGION_SYMPTOMS: Record<Region, string[]> = {
   general: ["High fever", "Fatigue / General weakness", "Body aches / Muscle pain", "Chills / Shivering", "Weight loss", "Inconsolable crying (infant)", "Refusal to feed / lethargy (infant/child)"],
 };
 
-const REGION_LABELS: Record<Region, string> = {
-  head: "Head & face", neck: "Throat & neck", chest: "Chest", abdomen: "Belly & stomach",
-  upper_back: "Upper back", lower_back: "Lower back",
-  left_arm: "Left arm", right_arm: "Right arm", left_hand: "Left hand & fingers", right_hand: "Right hand & fingers",
-  left_leg: "Left leg", right_leg: "Right leg", left_foot: "Left foot & toes", right_foot: "Right foot & toes",
-  general: "Whole body / general",
-};
+
 
 const FRONT_REGIONS: Region[] = ["head", "neck", "chest", "abdomen", "left_arm", "right_arm", "left_hand", "right_hand", "left_leg", "right_leg", "left_foot", "right_foot"];
 const BACK_REGIONS: Region[] = ["head", "neck", "upper_back", "lower_back", "left_arm", "right_arm", "left_hand", "right_hand", "left_leg", "right_leg", "left_foot", "right_foot"];
@@ -100,6 +95,9 @@ function Step({ n, title, children, id }: { n: string; title: string; children: 
 }
 
 export default function BodyMap({ onSubmit, onBack }: BodyMapProps) {
+  const { t, label } = useI18n();
+  /** Region name as shown (Pidgin when chosen); the English name still goes to the AI. */
+  const regionName = (r: Region) => label(REGION_LABELS[r]);
   const [view, setView] = useState<"front" | "back">("front");
   const [region, setRegion] = useState<Region | null>(null);
   const [hovered, setHovered] = useState<Region | null>(null);
@@ -125,11 +123,11 @@ export default function BodyMap({ onSubmit, onBack }: BodyMapProps) {
     set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const missing = [
-    !region && "where it hurts",
-    !severity && "how strong",
-    !duration && "how long",
-    !ageGroup && "age",
-    !sex && "sex / pregnancy",
+    !region && t("missRegion"),
+    !severity && t("missSeverity"),
+    !duration && t("missDuration"),
+    !ageGroup && t("missAge"),
+    !sex && t("missSex"),
   ].filter(Boolean) as string[];
   const isValid = missing.length === 0;
 
@@ -165,7 +163,7 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
     return {
       role: "button",
       tabIndex: 0,
-      "aria-label": REGION_LABELS[r],
+      "aria-label": regionName(r),
       "aria-pressed": region === r,
       onClick: () => chooseRegion(r),
       onKeyDown: (e: React.KeyboardEvent) => {
@@ -195,27 +193,27 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
     <div className="animate-fade-in">
       <div className="flex items-center justify-between gap-3 mb-6">
         <button type="button" onClick={onBack} className="btn btn-secondary">
-          <ArrowLeftIcon /> Back
+          <ArrowLeftIcon /> {t("back")}
         </button>
       </div>
 
-      <h1 className="text-3xl sm:text-4xl font-bold mb-6">Where does it hurt?</h1>
+      <h1 className="text-3xl sm:text-4xl font-bold mb-6">{t("whereHurts")}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         {/* Step 1 — diagram */}
         <section aria-labelledby="step1" className="lg:col-span-5 card p-5 sm:p-6 space-y-5 lg:sticky lg:top-20">
           <div>
-            <p className="eyebrow">Step 1</p>
-            <h2 id="step1" className="text-xl font-bold">Tap the part of the body</h2>
+            <p className="eyebrow">{t("stepN", { n: 1 })}</p>
+            <h2 id="step1" className="text-xl font-bold">{t("step1Title")}</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Body view">
-            <Choice label="Front" on={view === "front"} onClick={() => switchView("front")} />
-            <Choice label="Back" on={view === "back"} onClick={() => switchView("back")} />
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("bodyView")}>
+            <Choice label={t("front")} on={view === "front"} onClick={() => switchView("front")} />
+            <Choice label={t("backView")} on={view === "back"} onClick={() => switchView("back")} />
           </div>
 
           <div className="mx-auto w-full max-w-[220px]">
-            <svg viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto select-none" aria-label={`Human body, ${view} view`}>
+            <svg viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto select-none" aria-label={t("bodySvg", { view: view === "front" ? t("front") : t("backView") })}>
               {/* Limbs first (under the torso). On the front view the person's right side is on your left. */}
               <path d={BODY.arm} {...regionProps("left_arm")} />
               <path d={BODY.hand} {...regionProps("left_hand")} />
@@ -274,12 +272,12 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
             onClick={() => chooseRegion("general")}
             className="chip w-full justify-center"
           >
-            Whole body / general feeling
+            {t("wholeBody")}
           </button>
 
           <div>
             <label htmlFor="region-list" className="block text-sm font-semibold text-muted mb-1.5">
-              Or choose from a list
+              {t("orList")}
             </label>
             <select
               id="region-list"
@@ -287,77 +285,77 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
               value={region ?? ""}
               onChange={(e) => e.target.value && chooseRegion(e.target.value as Region)}
             >
-              <option value="">Choose a body area</option>
+              <option value="">{t("chooseArea")}</option>
               {[...listRegions, "general" as Region].map((r) => (
-                <option key={r} value={r}>{REGION_LABELS[r]}</option>
+                <option key={r} value={r}>{regionName(r)}</option>
               ))}
             </select>
           </div>
 
           <p role="status" className="text-base font-semibold text-rust text-center min-h-6">
-            {region ? `${REGION_LABELS[region]} selected` : ""}
+            {region ? t("regionSelected", { region: regionName(region) }) : ""}
           </p>
         </section>
 
         {/* Steps 2–7 */}
         <form onSubmit={handleSubmit} className="lg:col-span-7 card p-5 sm:p-6 space-y-8">
           <div id="bm-step2" className="scroll-mt-24">
-            <Step n="Step 2" title={region ? `${REGION_LABELS[region]}: what do you feel?` : "What do you feel there?"}>
+            <Step n={t("stepN", { n: 2 })} title={region ? t("step2Title", { region: regionName(region) }) : t("step2Empty")}>
               {region ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {REGION_SYMPTOMS[region].map((s) => (
-                    <Choice key={s} label={s} on={symptoms.includes(s)} onClick={() => toggle(symptoms, setSymptoms, s)} />
+                    <Choice key={s} label={label(s)} on={symptoms.includes(s)} onClick={() => toggle(symptoms, setSymptoms, s)} />
                   ))}
                 </div>
               ) : (
-                <p className="text-muted bg-sand rounded-xl p-4">Choose a part of the body in step 1 to see what you might feel there.</p>
+                <p className="text-muted bg-sand rounded-xl p-4">{t("step2Hint")}</p>
               )}
             </Step>
           </div>
 
-          <Step n="Step 3" title="How strong does it feel?">
+          <Step n={t("stepN", { n: 3 })} title={t("step3Title")}>
             <div className="grid grid-cols-3 gap-2">
-              {SEVERITIES.map((v) => <Choice key={v} label={v} on={severity === v} onClick={() => setSeverity(v)} />)}
+              {SEVERITIES.map((v) => <Choice key={v} label={label(v)} on={severity === v} onClick={() => setSeverity(v)} />)}
             </div>
           </Step>
 
-          <Step n="Step 4" title="How long has it been going on?">
+          <Step n={t("stepN", { n: 4 })} title={t("step4Title")}>
             <div className="grid grid-cols-1 min-[400px]:grid-cols-3 gap-2">
-              {DURATIONS.map((v) => <Choice key={v} label={v} on={duration === v} onClick={() => setDuration(v)} />)}
+              {DURATIONS.map((v) => <Choice key={v} label={label(v)} on={duration === v} onClick={() => setDuration(v)} />)}
             </div>
           </Step>
 
-          <Step n="Step 5" title="How old is the person who is unwell?">
+          <Step n={t("stepN", { n: 5 })} title={t("step5Title")}>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {AGE_GROUPS.map((v) => <Choice key={v} label={v} on={ageGroup === v} onClick={() => setAgeGroup(v)} />)}
+              {AGE_GROUPS.map((v) => <Choice key={v} label={label(v)} on={ageGroup === v} onClick={() => setAgeGroup(v)} />)}
             </div>
           </Step>
 
-          <Step n="Step 6" title="Sex and pregnancy">
+          <Step n={t("stepN", { n: 6 })} title={t("step6Title")}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {SEX_OPTIONS.map((v) => <Choice key={v} label={v} on={sex === v} onClick={() => setSex(v)} />)}
+              {SEX_OPTIONS.map((v) => <Choice key={v} label={label(v)} on={sex === v} onClick={() => setSex(v)} />)}
             </div>
           </Step>
 
-          <Step n="Step 7 · optional" title="Any long-term health conditions?">
+          <Step n={t("step7N")} title={t("step7Title")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {CONDITIONS.map((v) => (
-                <Choice key={v} label={v} on={conditions.includes(v)} onClick={() => toggle(conditions, setConditions, v)} />
+                <Choice key={v} label={label(v)} on={conditions.includes(v)} onClick={() => toggle(conditions, setConditions, v)} />
               ))}
             </div>
-            <p className="text-sm text-muted">Leave empty if none. We only use what you choose here.</p>
+            <p className="text-sm text-muted">{t("step7Hint")}</p>
           </Step>
 
           <div className="space-y-2">
             <label htmlFor="bm-extra" className="block">
-              <span className="eyebrow block">Optional</span>
-              <span className="block font-serif text-xl font-bold">Anything else to add?</span>
+              <span className="eyebrow block">{t("optional")}</span>
+              <span className="block font-serif text-xl font-bold">{t("extraLabel")}</span>
             </label>
             <textarea
               id="bm-extra"
               value={extra}
               onChange={(e) => setExtra(e.target.value)}
-              placeholder="In your own words…"
+              placeholder={t("extraPlaceholder")}
               maxLength={600}
               className="field min-h-28 resize-y"
             />
@@ -365,10 +363,10 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
 
           <div className="border-t border-line pt-6 space-y-3">
             <button type="submit" disabled={!isValid} className="btn btn-primary w-full text-lg">
-              See what to do next <ArrowRightIcon />
+              {t("submit")} <ArrowRightIcon />
             </button>
             <p role="status" className="text-sm text-muted text-center">
-              {isValid ? "Ready. This takes a few seconds." : `Still needed: ${missing.join(", ")}.`}
+              {isValid ? t("ready") : t("stillNeeded", { list: missing.join(", ") })}
             </p>
           </div>
         </form>

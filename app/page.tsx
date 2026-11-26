@@ -11,8 +11,8 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { ChatTurn, RulesResult, StructuredInput, TriageResponse, TriageResult } from "@/types";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { ChatTurn, HandoverInfo, RulesResult, StructuredInput, TriageResponse, TriageResult } from "@/types";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import ChatWindow from "@/components/ChatWindow";
 import ChatInput from "@/components/ChatInput";
@@ -26,6 +26,9 @@ import ClinicalSidebar from "@/components/ClinicalSidebar";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import BodyMap from "@/components/BodyMap";
 import NafdacCheck from "@/components/NafdacCheck";
+import NurseCard from "@/components/NurseCard";
+import LanguageToggle from "@/components/LanguageToggle";
+import { LangProvider, makeI18n, type Lang } from "@/lib/i18n";
 import { ArrowLeftIcon, HomeIcon, WifiOffIcon } from "@/components/Icons";
 import { isCrisis } from "@/lib/safety/crisis";
 import { checkRedFlags } from "@/lib/safety/redFlags";
@@ -41,7 +44,8 @@ type AppState =
   | { screen: "result"; result: TriageResult }
   | { screen: "offlineResult"; result: RulesResult; reason: RulesReason }
   | { screen: "crisis" }
-  | { screen: "emergency"; message: string; local: boolean };
+  /** message: the danger sign (English, translated on screen); sign: its id, for first aid. */
+  | { screen: "emergency"; message: string; local: boolean; sign?: string };
 
 /** Weak signal must not leave a scared parent waiting forever. */
 const REQUEST_TIMEOUT_MS = 25000;
@@ -94,7 +98,14 @@ export default function Home() {
   const [chatNeedsSignal, setChatNeedsSignal] = useState(false);
   const [userState, setUserState] = useState<string | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
   const [explain, setExplain] = useState<ExplainState>({ status: "none" });
+  /** Language, in memory only (nothing stored). */
+  const [lang, setLang] = useState<Lang>("en");
+  const i18n = useMemo(() => makeI18n(lang), [lang]);
+  const { t } = i18n;
+  /** Body-map answers of the current check, for the nurse card. Memory only. */
+  const [structuredInput, setStructuredInput] = useState<StructuredInput | null>(null);
   /** Ignores an explanation that arrives after the person has started over. */
   const explainRun = useRef(0);
 
@@ -112,8 +123,16 @@ export default function Home() {
       e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
     };
+    const onInstalled = () => {
+      setInstalled(true);
+      setInstallPrompt(null);
+    };
     window.addEventListener("beforeinstallprompt", onInstall);
-    return () => window.removeEventListener("beforeinstallprompt", onInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   // Each new screen starts at the top (phones keep the old scroll position otherwise).
@@ -125,7 +144,10 @@ export default function Home() {
     if (!installPrompt) return;
     await installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
-    if (outcome === "accepted") setInstallPrompt(null);
+    if (outcome === "accepted") {
+      setInstallPrompt(null);
+      setInstalled(true);
+    }
   };
 
   const reset = useCallback(() => {
@@ -134,6 +156,7 @@ export default function Home() {
     setLoading(false);
     setFollowupCount(0);
     setChatNeedsSignal(false);
+    setStructuredInput(null);
     setExplain({ status: "none" });
     explainRun.current += 1;
   }, []);
@@ -143,15 +166,20 @@ export default function Home() {
    * the AI to explain what is most likely going on; urgency stays RED whatever it says.
    */
   const goEmergency = useCallback(
-    (message: string, local: boolean, explainPayload?: { history: ChatTurn[]; structured?: StructuredInput }) => {
-      setAppState({ screen: "emergency", message, local });
+    (
+      message: string,
+      local: boolean,
+      sign: string | undefined,
+      explainPayload?: { history: ChatTurn[]; structured?: StructuredInput }
+    ) => {
+      setAppState({ screen: "emergency", message, local, sign });
       const run = ++explainRun.current;
       if (!explainPayload || dataSaver || !navigator.onLine) {
         setExplain({ status: "none" });
         return;
       }
       setExplain({ status: "loading" });
-      postTriage({ ...explainPayload, followupCount: 0, dataSaver: false, explain: true })
+      postTriage({ ...explainPayload, followupCount: 0, dataSaver: false, explain: true, lang })
         .then((data) => {
           if (run !== explainRun.current) return;
           setExplain(data.kind === "result" ? { status: "done", result: data.result } : { status: "failed" });
@@ -160,12 +188,12 @@ export default function Home() {
           if (run === explainRun.current) setExplain({ status: "failed" });
         });
     },
-    [dataSaver]
+    [dataSaver, lang]
   );
 
   const showRules = useCallback((result: RulesResult, reason: RulesReason) => {
     if (result.urgencyLevel === "RED") {
-      setAppState({ screen: "emergency", message: result.details.split(". ")[0] + ".", local: true });
+      setAppState({ screen: "emergency", message: result.details.split(". ")[0] + ".", local: true, sign: result.sign });
     } else {
       setAppState({ screen: "offlineResult", result, reason });
     }
@@ -187,6 +215,7 @@ export default function Home() {
       const offlineRules = runOfflineTriage(structured);
       const onlineFloor = runOfflineTriage(structured, { severityEscalates: false });
       const newHistory: ChatTurn[] = [{ role: "user", content: formattedText }];
+      setStructuredInput(structured);
 
       if (offlineNow) {
         track({ name: "triage_completed", urgency: offlineRules.urgencyLevel, mode: "offline" });
@@ -196,7 +225,7 @@ export default function Home() {
       if (onlineFloor.urgencyLevel === "RED") {
         track({ name: "triage_completed", urgency: "RED", mode: "online" });
         setHistory(newHistory);
-        goEmergency(onlineFloor.details.split(". ")[0] + ".", true, { history: newHistory, structured });
+        goEmergency(onlineFloor.details.split(". ")[0] + ".", true, onlineFloor.sign, { history: newHistory, structured });
         return;
       }
 
@@ -205,13 +234,13 @@ export default function Home() {
       setHistory(newHistory);
 
       try {
-        const data = await postTriage({ history: newHistory, followupCount: 0, dataSaver, structured });
+        const data = await postTriage({ history: newHistory, followupCount: 0, dataSaver, structured, lang });
         switch (data.kind) {
           case "crisis":
             setAppState({ screen: "crisis" });
             break;
           case "emergency":
-            goEmergency(data.matched, false, { history: newHistory, structured });
+            goEmergency(data.matched, false, data.flag, { history: newHistory, structured });
             break;
           case "rules":
             showRules(data.result, "unavailable");
@@ -236,7 +265,7 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [dataSaver, isOffline, showRules, goEmergency]
+    [dataSaver, isOffline, showRules, goEmergency, lang]
   );
 
   /* ── Chat ─────────────────────────────────────────────────── */
@@ -255,18 +284,14 @@ export default function Home() {
       const redFlag = checkRedFlags(allUserText);
       if (redFlag) {
         track({ name: "red_flag_detected", flag: redFlag.label, mode: isOffline ? "offline" : "online" });
-        goEmergency(redFlag.message, true, isOffline ? undefined : { history: newHistory });
+        goEmergency(redFlag.message, true, redFlag.id, isOffline ? undefined : { history: newHistory });
         return;
       }
 
       if (isOffline || !navigator.onLine) {
         setHistory((prev) => [
           ...prev,
-          {
-            role: "assistant",
-            content:
-              "You're offline, so I can't read typed messages right now. No danger signs were found in what you wrote. The body map works without internet — tap the button below to use it.",
-          },
+          { role: "assistant", content: t("chatOffline") },
         ]);
         setChatNeedsSignal(true);
         return;
@@ -278,13 +303,14 @@ export default function Home() {
           history: dataSaver ? trimForDataSaver(newHistory) : newHistory,
           followupCount,
           dataSaver,
+          lang,
         });
         switch (data.kind) {
           case "crisis":
             setAppState({ screen: "crisis" });
             break;
           case "emergency":
-            goEmergency(data.matched, false, { history: newHistory });
+            goEmergency(data.matched, false, data.flag, { history: newHistory });
             break;
           case "rules":
             showRules(data.result, "unavailable");
@@ -301,19 +327,22 @@ export default function Home() {
         track({ name: "triage_error", stage: "chat_fetch" });
         setHistory((prev) => [
           ...prev,
-          {
-            role: "assistant",
-            content:
-              "The connection is too weak right now. No danger signs were found in what you wrote. You can try again, or use the body map — it works without internet. If you are worried, see a health worker.",
-          },
+          { role: "assistant", content: t("chatWeak") },
         ]);
         setChatNeedsSignal(true);
       } finally {
         setLoading(false);
       }
     },
-    [history, followupCount, dataSaver, isOffline, showRules, goEmergency]
+    [history, followupCount, dataSaver, isOffline, showRules, goEmergency, lang, t]
   );
+
+  const userTurns = history.filter((h) => h.role === "user").map((h) => h.content);
+  const handover: HandoverInfo = {
+    structured: structuredInput,
+    // After the body map the first turn is its summary (already shown from structuredInput).
+    messages: structuredInput ? userTurns.slice(1) : userTurns,
+  };
 
   const tools = (
     <ClinicalSidebar
@@ -325,6 +354,7 @@ export default function Home() {
   );
 
   return (
+    <LangProvider value={i18n}>
     <div className="min-h-dvh flex flex-col bg-cream text-ink">
       {/* Header */}
       <header className="on-dark sticky top-0 z-40 bg-espresso text-cream">
@@ -333,7 +363,7 @@ export default function Home() {
             type="button"
             onClick={reset}
             className="flex items-center gap-2.5 min-h-12 cursor-pointer text-left"
-            aria-label="Pocket Health Worker — go to start"
+            aria-label={t("brandAria")}
           >
             <span aria-hidden className="w-9 h-9 rounded-xl bg-rust flex items-center justify-center font-serif font-bold text-cream">
               P
@@ -341,17 +371,13 @@ export default function Home() {
             <span className="font-serif text-lg font-bold leading-tight hidden min-[380px]:block">Pocket Health Worker</span>
           </button>
           <div className="flex items-center gap-2">
-            {installPrompt && (
-              <button type="button" onClick={handleInstallClick} className="btn btn-quiet text-ember hidden sm:inline-flex">
-                Install app
-              </button>
-            )}
+            <LanguageToggle onChange={setLang} />
             <DataSaverToggle on={dataSaver} onChange={setDataSaver} variant="header" />
             {appState.screen !== "welcome" && (
               <button type="button" onClick={reset} className="btn btn-on-dark px-3">
                 <HomeIcon />
-                <span className="hidden sm:inline">Start over</span>
-                <span className="sr-only sm:hidden">Start over</span>
+                <span className="hidden sm:inline">{t("startOver")}</span>
+                <span className="sr-only sm:hidden">{t("startOver")}</span>
               </button>
             )}
           </div>
@@ -363,8 +389,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6 py-3 flex items-start gap-2.5 text-sm">
             <WifiOffIcon className="w-5 h-5 text-ember mt-0.5" />
             <p>
-              <span className="font-bold">No internet — still working on your phone.</span> The body map, danger-sign
-              checks, emergency numbers and hospital list all work offline.
+              <span className="font-bold">{t("offlineTitle")}</span> {t("offlineBody")}
             </p>
           </div>
         </div>
@@ -375,6 +400,10 @@ export default function Home() {
           <WelcomeScreen
             onSelectMode={(mode) => setAppState({ screen: mode })}
             onCrisisClick={() => setAppState({ screen: "crisis" })}
+            onLangChange={setLang}
+            canInstall={!!installPrompt}
+            installed={installed}
+            onInstall={handleInstallClick}
           />
         )}
 
@@ -385,15 +414,12 @@ export default function Home() {
         {appState.screen === "medicine" && (
           <div className="mx-auto max-w-xl space-y-5 animate-fade-in">
             <button type="button" onClick={reset} className="btn btn-secondary">
-              <ArrowLeftIcon /> Back
+              <ArrowLeftIcon /> {t("back")}
             </button>
             <div className="space-y-2">
-              <p className="eyebrow">NAFDAC check</p>
-              <h1 className="text-3xl sm:text-4xl font-bold">Is this medicine genuine?</h1>
-              <p className="text-lg text-muted">
-                Fake medicines are common. NAFDAC can tell you if yours is real. This app does not decide: it only
-                helps you ask NAFDAC.
-              </p>
+              <p className="eyebrow">{t("medEyebrow")}</p>
+              <h1 className="text-3xl sm:text-4xl font-bold">{t("medTitle")}</h1>
+              <p className="text-lg text-muted">{t("medIntro")}</p>
             </div>
             <div className="card p-5 sm:p-6">
               <NafdacCheck />
@@ -405,16 +431,19 @@ export default function Home() {
           <div className="mx-auto max-w-xl space-y-4 animate-fade-in">
             <EmergencyBanner message={appState.message} />
             {appState.local && (
-              <p className="text-sm text-muted">
-                This was decided by fixed safety rules on your phone{isOffline ? ", with no internet needed" : ""}. It is
-                guidance, not a diagnosis.
-              </p>
+              <p className="text-sm text-muted">{isOffline ? t("emergencyLocalOffline") : t("emergencyLocal")}</p>
             )}
-            <EmergencyActions selectedState={userState} onStateChange={setUserState}>
+            <EmergencyActions selectedState={userState} onStateChange={setUserState} sign={appState.sign}>
               <EmergencyExplanation state={explain} />
             </EmergencyActions>
+            <NurseCard
+              info={handover}
+              urgency="RED"
+              finding={appState.message}
+              likelyCondition={explain.status === "done" ? explain.result.likelyCondition : undefined}
+            />
             <button type="button" onClick={reset} className="btn btn-secondary w-full">
-              Start a new check
+              {t("startNewCheck")}
             </button>
           </div>
         )}
@@ -424,6 +453,7 @@ export default function Home() {
             <ResultCard
               result={appState.result}
               history={history}
+              handover={handover}
               onReset={reset}
               onContinue={() => setAppState({ screen: "chat" })}
               selectedState={userState}
@@ -438,6 +468,7 @@ export default function Home() {
               <ResultCard
                 result={appState.result}
                 history={history}
+                handover={handover}
                 onReset={reset}
                 onContinue={() => setAppState({ screen: "chat" })}
                 selectedState={userState}
@@ -451,7 +482,7 @@ export default function Home() {
         {appState.screen === "offlineResult" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             <div className="lg:col-span-7">
-              <OfflineResultCard result={appState.result} reason={appState.reason} onReset={reset} />
+              <OfflineResultCard result={appState.result} reason={appState.reason} handover={handover} onReset={reset} />
             </div>
             <div className="lg:col-span-5 lg:sticky lg:top-20">{tools}</div>
           </div>
@@ -460,14 +491,14 @@ export default function Home() {
         {appState.screen === "chat" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
             <section
-              aria-label="Symptom conversation"
+              aria-label={t("chatAria")}
               className="lg:col-span-7 card overflow-hidden flex flex-col h-[72dvh] min-h-[420px] lg:h-[640px]"
             >
               <ChatWindow history={history} loading={loading} />
               {chatNeedsSignal && (
                 <div className="px-4 pb-3">
                   <button type="button" onClick={() => setAppState({ screen: "bodymap" })} className="btn btn-secondary w-full">
-                    Use the body map instead
+                    {t("useBodyMap")}
                   </button>
                 </div>
               )}
@@ -479,8 +510,9 @@ export default function Home() {
       </main>
 
       <footer className="mx-auto max-w-6xl w-full px-4 sm:px-6 pb-8 text-sm text-muted">
-        Guidance only, not a diagnosis. In an emergency call 112.
+        {t("footer")}
       </footer>
     </div>
+    </LangProvider>
   );
 }

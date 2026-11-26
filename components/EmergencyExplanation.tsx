@@ -9,6 +9,7 @@
 "use client";
 
 import type { TriageResult } from "@/types";
+import { useI18n } from "@/lib/i18n";
 
 export type ExplainState =
   | { status: "none" }
@@ -17,27 +18,26 @@ export type ExplainState =
   | { status: "done"; result: TriageResult };
 
 export default function EmergencyExplanation({ state }: { state: ExplainState }) {
+  const { t } = useI18n();
   if (state.status === "none") return null;
 
   return (
     <section aria-labelledby="explain-title" aria-live="polite" className="card p-5 space-y-3">
-      <h2 id="explain-title" className="text-xl font-bold">What might be going on</h2>
+      <h2 id="explain-title" className="text-xl font-bold">{t("explainTitle")}</h2>
 
       {state.status === "loading" && (
-        <p className="text-muted">Getting an explanation… You do not need to wait for it. Call or go now.</p>
+        <p className="text-muted">{t("explainLoading")}</p>
       )}
 
       {state.status === "failed" && (
-        <p className="text-muted">
-          We couldn&rsquo;t load an explanation right now. That does not change anything: please get help now.
-        </p>
+        <p className="text-muted">{t("explainFailed")}</p>
       )}
 
       {state.status === "done" && (
         <>
           {state.result.likelyCondition && (
             <p className="text-lg">
-              <span className="font-semibold">Most likely: </span>
+              <span className="font-semibold">{t("mostLikely")}</span>
               {state.result.likelyCondition}
             </p>
           )}
@@ -45,7 +45,7 @@ export default function EmergencyExplanation({ state }: { state: ExplainState })
           {state.result.generalCauses && state.result.generalCauses.length > 0 && (
             <div>
               <p className="font-semibold">
-                It could be <span className="font-normal text-muted">(informational only)</span>
+                {t("itCouldBe")} <span className="font-normal text-muted">{t("infoOnly")}</span>
               </p>
               <ul className="list-disc pl-5 space-y-0.5">
                 {state.result.generalCauses.map((c) => (
@@ -54,9 +54,7 @@ export default function EmergencyExplanation({ state }: { state: ExplainState })
               </ul>
             </div>
           )}
-          <p className="text-sm text-muted">
-            Not a diagnosis. Only a health worker can say for sure, which is why you need to go now.
-          </p>
+          <p className="text-sm text-muted">{t("explainNotDx")}</p>
         </>
       )}
     </section>

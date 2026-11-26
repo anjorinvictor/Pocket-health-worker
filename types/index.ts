@@ -48,6 +48,8 @@ export interface RulesResult {
   details: string;
   warningSignsToWatch: string[];
   showEmergencyBridge: boolean;
+  /** RED only: which danger sign fired (a red-flag id, "infant", "pregnancy" or "general"). */
+  sign?: string;
 }
 
 export type TriageResponse =
@@ -56,7 +58,8 @@ export type TriageResponse =
   /** AI unavailable: the server ran the deterministic rules instead. */
   | { kind: "rules"; result: RulesResult }
   | { kind: "crisis" }
-  | { kind: "emergency"; matched: string };
+  /** matched: the danger-sign message (English); flag: its id, used to pick first-aid steps. */
+  | { kind: "emergency"; matched: string; flag?: string };
 
 export interface FacilityGuidance {
   headline: string;
@@ -72,4 +75,12 @@ export interface RedFlag {
   /** Each inner list triggers the flag when ALL its terms appear, e.g. ["baby", "fever"]. */
   matchAll?: string[][];
   message: string;
+}
+
+/** What the person entered, kept in memory for the "Show this to the nurse" card. */
+export interface HandoverInfo {
+  /** Body-map answers, when the check started from the body map. */
+  structured: StructuredInput | null;
+  /** What the person typed (chat messages, or follow-up answers after the body map). */
+  messages: string[];
 }

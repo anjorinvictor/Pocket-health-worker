@@ -7,6 +7,7 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { SendIcon } from "./Icons";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   onSend: (text: string) => void;
@@ -16,6 +17,7 @@ interface Props {
 const MAX_LENGTH = 600;
 
 export default function ChatInput({ onSend, disabled }: Props) {
+  const { t } = useI18n();
   const [value, setValue] = useState("");
 
   const send = () => {
@@ -40,13 +42,13 @@ export default function ChatInput({ onSend, disabled }: Props) {
         send();
       }}
     >
-      <label htmlFor="chat-input" className="sr-only">Describe how you feel</label>
+      <label htmlFor="chat-input" className="sr-only">{t("chatLabel")}</label>
       <div className="flex items-end gap-2">
         <textarea
           id="chat-input"
           className="field flex-1 resize-none max-h-40"
           rows={2}
-          placeholder="For example: my baby has had a high fever since last night"
+          placeholder={t("chatPlaceholder")}
           value={value}
           maxLength={MAX_LENGTH}
           disabled={disabled}
@@ -54,7 +56,7 @@ export default function ChatInput({ onSend, disabled }: Props) {
           onKeyDown={handleKey}
           aria-describedby="chat-count"
         />
-        <button type="submit" disabled={disabled || !value.trim()} className="btn btn-primary px-4" aria-label="Send">
+        <button type="submit" disabled={disabled || !value.trim()} className="btn btn-primary px-4" aria-label={t("send")}>
           <SendIcon />
         </button>
       </div>

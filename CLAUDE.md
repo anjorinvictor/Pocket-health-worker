@@ -95,6 +95,7 @@ The tables above describe `main` / production. On the branch:
 - **Data Saver**: header switch on every screen (memory only, resets on reload). Measured on the same request: response 1,080–1,291 B → 955 B, 3.0–3.9 s → 1.4 s; emergencies 0 B (answered on phone). First page load ≈ 213 KB gzip, cached by the service worker.
 - **UI**: theme in `app/globals.css` (`@theme` + `.btn/.chip/.field/.card`), all text pairs WCAG AA; 360 px first, desktop two-column; body-map regions keyboard-operable.
 - **Commands**: build ✅, lint ✅ (0 problems), tests ✅ 84.
+- **Added 2026-11-26 (pre-pitch)**: Pidgin switch (`lib/i18n/`, memory only; AI answers in Pidgin via `PIDGIN_RULE`; rules/red-flag sentences translated, test-enforced); "What to do on the way" first aid per danger sign (`data/first-aid.ts`, no drugs/doses, test-enforced; **needs clinician review**); "Show this to the nurse" large-print English handover card (`components/NurseCard.tsx`, nothing stored); install card + PNG icons (`components/InstallCard.tsx`). Tests 112.
 - **Open**: SURPIN toll-free number removed (unconfirmed); hospital names need owner verification; Vercel preview needs `GEMINI_API_KEY` set for the Preview environment or chat falls back to "see a clinic" (body map still works via rules); privacy copy now discloses that answers go to an AI service when online.
 
 ## Non-negotiables

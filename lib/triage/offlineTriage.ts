@@ -74,17 +74,17 @@ export function runOfflineTriage(input: OfflineTriageInput, opts: RulesOptions =
   // 0. Hard red-flag phrases in anything the person entered.
   const redFlag = checkRedFlags([...symptoms, additionalText].join(" "));
   if (redFlag) {
-    return makeRED(redFlag.message);
+    return makeRED(redFlag.message, redFlag.id);
   }
 
   // 1a. Infant with fever or any danger sign.
   if (isInfant(ageGroup) && INFANT_DANGER_SIGNS.some((s) => allText.includes(s))) {
-    return makeRED("A baby under one year with these signs needs a health worker immediately.");
+    return makeRED("A baby under one year with these signs needs a health worker immediately.", "infant");
   }
 
   // 1b. Pregnancy danger signs.
   if (isPregnant(biologicalSex) && PREGNANCY_DANGER_SIGNS.some((s) => allText.includes(s))) {
-    return makeRED("These are danger signs in pregnancy and need urgent care for mother and baby.");
+    return makeRED("These are danger signs in pregnancy and need urgent care for mother and baby.", "pregnancy");
   }
 
   // 1c. Severe symptoms in a critical area.
@@ -144,8 +144,9 @@ export function runOfflineTriage(input: OfflineTriageInput, opts: RulesOptions =
 
 /* ── Result builders ───────────────────────────────────────── */
 
-function makeRED(reason: string): OfflineTriageResult {
+function makeRED(reason: string, sign = "general"): OfflineTriageResult {
   return {
+    sign,
     urgencyLevel: "RED",
     headline: "This may be an emergency. Get help now.",
     details: `${reason} Go to the nearest hospital emergency department now. Do not wait to see if it gets better.`,

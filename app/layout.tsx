@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description:
     "A calm hand for when you can't reach a doctor. Free, private, works offline. Guidance, not diagnosis.",
   manifest: "/manifest.json",
+  icons: { icon: "/icon.svg", apple: "/icon-192.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

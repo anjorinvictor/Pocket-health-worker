@@ -19,6 +19,7 @@ import { FACILITIES, STATES } from "@/data/facilities";
 import { NATIONAL_EMERGENCY, STATE_AMBULANCE } from "@/data/emergency-lines";
 import { nearestState } from "@/lib/geo/nearestState";
 import { PhoneIcon, PinIcon } from "./Icons";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   selectedState: string | null;
@@ -32,8 +33,9 @@ export default function FacilityFinder({
   selectedState,
   onStateChange,
   showCallButtons = true,
-  heading = "Find a hospital near you",
+  heading,
 }: Props) {
+  const { t } = useI18n();
   const selectId = useId();
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function FacilityFinder({
   const useLocation = () => {
     setGeoError(null);
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeoError("Location isn't available on this phone. Please choose your state.");
+      setGeoError(t("geoUnavailable"));
       return;
     }
     setLocating(true);
@@ -54,7 +56,7 @@ export default function FacilityFinder({
         setLocating(false);
       },
       () => {
-        setGeoError("Couldn't get your location. Please choose your state.");
+        setGeoError(t("geoFailed"));
         setLocating(false);
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
@@ -73,12 +75,12 @@ export default function FacilityFinder({
 
   return (
     <section aria-labelledby={`${selectId}-h`} className="space-y-4">
-      <h2 id={`${selectId}-h`} className="text-xl font-bold">{heading}</h2>
+      <h2 id={`${selectId}-h`} className="text-xl font-bold">{heading ?? t("findHospital")}</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
         <div>
           <label htmlFor={selectId} className="block text-sm font-semibold text-muted mb-1.5">
-            Your state
+            {t("yourState")}
           </label>
           <select
             id={selectId}
@@ -86,7 +88,7 @@ export default function FacilityFinder({
             value={selectedState ?? ""}
             onChange={(e) => onStateChange(e.target.value)}
           >
-            <option value="" disabled>Choose your state</option>
+            <option value="" disabled>{t("chooseState")}</option>
             {STATES.map((s) => (
               <option key={s} value={s}>{s === "Abuja" ? "Abuja (FCT)" : s}</option>
             ))}
@@ -94,24 +96,21 @@ export default function FacilityFinder({
         </div>
         <button type="button" onClick={useLocation} disabled={locating} className="btn btn-secondary sm:self-end">
           <PinIcon />
-          {locating ? "Finding your state…" : "Use my location"}
+          {locating ? t("findingState") : t("useMyLocation")}
         </button>
       </div>
 
       {geoError && <p role="status" className="text-sm text-clinic bg-clinic-soft rounded-xl px-3 py-2">{geoError}</p>}
 
       <a href={nearMeUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary w-full">
-        <PinIcon /> {coords ? "Hospitals and clinics near me (map)" : "Search hospitals near me (map)"}
+        <PinIcon /> {coords ? t("mapNearMe") : t("mapSearch")}
       </a>
-      <p className="text-sm text-muted -mt-2">
-        Opens Google Maps{coords ? " at where you are now" : ""}. It shows every nearby hospital and clinic, and needs
-        internet.
-      </p>
+      <p className="text-sm text-muted -mt-2">{coords ? t("mapNoteHere") : t("mapNote")}</p>
 
       {showCallButtons && (
         <div className="grid grid-cols-1 gap-2">
           <a href={`tel:${NATIONAL_EMERGENCY.tel}`} className="btn btn-danger w-full">
-            <PhoneIcon /> Call {NATIONAL_EMERGENCY.display} · emergency (free)
+            <PhoneIcon /> {t("call112Free", { n: NATIONAL_EMERGENCY.display })}
           </a>
           {ambulance && (
             <a href={`tel:${ambulance.tel}`} className="btn btn-secondary w-full">
@@ -134,21 +133,18 @@ export default function FacilityFinder({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-quiet shrink-0 px-2"
-                aria-label={`Directions to ${f.name}`}
+                aria-label={t("directionsTo", { name: f.name })}
               >
-                Directions
+                {t("directions")}
               </a>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted">Choose your state to see the main public hospitals with emergency care.</p>
+        <p className="text-sm text-muted">{t("chooseStateForList")}</p>
       )}
 
-      <p className="text-sm text-muted">
-        This list shows only the main public hospitals in each state, not every hospital. Use the map above to find the
-        closest one to you. We only list numbers we have checked: call 112 and ask for the nearest hospital.
-      </p>
+      <p className="text-sm text-muted">{t("hospitalListNote")}</p>
     </section>
   );
 }

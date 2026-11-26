@@ -106,3 +106,11 @@ export function PillIcon({ className = "w-6 h-6" }: P) {
     </svg>
   );
 }
+
+export function DownloadIcon({ className = "w-5 h-5" }: P) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`${base} ${className}`}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14" />
+    </svg>
+  );
+}

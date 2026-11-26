@@ -34,3 +34,12 @@ export const CONDITIONS: string[] = Object.values(CONDITION);
 
 export const INFANT = "Infant (0-1)";
 export const PREGNANT = "Female (Pregnant)";
+
+/** Body-map region ids and the names people see (also used on the nurse card). */
+export const REGION_LABELS: Record<string, string> = {
+  head: "Head & face", neck: "Throat & neck", chest: "Chest", abdomen: "Belly & stomach",
+  upper_back: "Upper back", lower_back: "Lower back",
+  left_arm: "Left arm", right_arm: "Right arm", left_hand: "Left hand & fingers", right_hand: "Right hand & fingers",
+  left_leg: "Left leg", right_leg: "Right leg", left_foot: "Left foot & toes", right_foot: "Right foot & toes",
+  general: "Whole body / general",
+};

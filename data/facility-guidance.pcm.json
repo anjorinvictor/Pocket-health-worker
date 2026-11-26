@@ -1,0 +1,29 @@
+{
+  "GREEN": {
+    "headline": "You fit take care of this one for house for now.",
+    "steps": [
+      "Rest, drink water well, and dey watch how you dey feel.",
+      "Use simple home care wey fit how you dey feel.",
+      "Check yourself again after 24–48 hours."
+    ],
+    "escalateIf": "If e dey worse, e dey last pass how e suppose, or new sign show, go clinic or see doctor."
+  },
+  "YELLOW": {
+    "headline": "E better make you see health worker soon.",
+    "steps": [
+      "Go Primary Health Centre (PHC), clinic, or pharmacy/doctor inside the next 24–48 hours.",
+      "Write down how you dey feel, when e start, and anything wey dey make am better or worse.",
+      "Carry any medicine wey you dey take, with the pack, go with you."
+    ],
+    "escalateIf": "If e dey worse quick quick or any emergency danger sign show, go the nearest hospital now now."
+  },
+  "RED": {
+    "headline": "This fit be emergency – get help now now.",
+    "steps": [
+      "Go the nearest hospital or general hospital emergency now now.",
+      "If you fit, find quick, safe motor or ask person to help carry you reach there.",
+      "No wait make e better by itself."
+    ],
+    "escalateIf": "If the person no dey respond, stop to breathe, or e dey worse fast, find the fastest emergency help wey dey."
+  }
+}

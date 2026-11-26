@@ -10,6 +10,7 @@
 import { useCallback, useState } from "react";
 import type { ChatTurn, TriageResult } from "@/types";
 import { URGENCY_LABEL } from "./UrgencyBadge";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
   result: TriageResult;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function ShareCheck({ result, history }: Props) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   const getShareText = useCallback(() => {
@@ -64,11 +66,11 @@ ${result.disclaimer}
   return (
     <div>
       <button type="button" onClick={handleShare} className="btn btn-secondary w-full">
-        {status === "copied" ? "Copied — paste it into WhatsApp or SMS" : "Share this check"}
+        {status === "copied" ? t("shareCopied") : t("shareCheck")}
       </button>
       {status === "failed" && (
         <p role="status" className="text-sm text-muted mt-2">
-          Sharing isn&rsquo;t available on this phone. You can take a screenshot instead.
+          {t("shareFailed")}
         </p>
       )}
     </div>
