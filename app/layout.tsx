@@ -1,41 +1,31 @@
 /**
- * Pocket Health Worker — Root Layout
+ * Pocket Health Worker — Root layout
  *
- * Implements the base HTML frame, configures global SEO metadata, and provides a 
- * premium native system typography stack (Segoe UI, system-ui, Helvetica Neue).
- * 
- * CORE ARCHITECTURE & HACKATHON ALIGNMENT:
- * - UN SDG 3: Ensures high performance and accessibility in low-bandwidth regions.
- * - Safety-First: Eliminates compile-time network font downloads to prevent build crashes.
- * - PWA Ready: Registers the Service Worker for offline capabilities.
+ * System fonts only (no web-font download), brand theme colour, PWA manifest.
+ * The page itself owns the single <main> landmark.
  */
 
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const viewport: Viewport = {
-  themeColor: "#059669",
+  themeColor: "#1c1412",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export const metadata: Metadata = {
-  title: "Pocket Health Worker — AI Triage Assistant",
+  title: "Pocket Health Worker — first-line health guidance",
   description:
-    "Safety-first symptom-triage assistant supporting UN SDG 3 in Nigeria. Get instant, conservative guidance to local health centres.",
+    "A calm hand for when you can't reach a doctor. Free, private, works offline. Guidance, not diagnosis.",
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="h-full" suppressHydrationWarning>
-      <body 
-        className="min-h-full flex flex-col bg-slate-50 text-slate-800 antialiased font-sans" 
-        suppressHydrationWarning
-      >
-        <main className="flex-grow flex flex-col">{children}</main>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-dvh bg-cream text-ink antialiased" suppressHydrationWarning>
+        {children}
       </body>
     </html>
   );

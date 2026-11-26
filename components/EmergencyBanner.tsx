@@ -1,25 +1,20 @@
 /**
- * EmergencyBanner — shown when triage concludes symptoms may be life-threatening
- * (RED). Prominently urges immediate hospital care. Part of the safety-first UX
- * that prioritizes getting people to appropriate care quickly (UN SDG 3).
+ * EmergencyBanner — the unmistakable top of every RED screen.
+ * Words + warning-triangle shape + colour; never colour alone. No emoji.
  */
 
-interface Props {
-  message: string;
-}
+import { AlertIcon } from "./Icons";
 
-export default function EmergencyBanner({ message }: Props) {
+export default function EmergencyBanner({ message }: { message?: string }) {
   return (
-    <div className="w-full bg-red-600 text-white px-4 py-4 rounded-xl shadow-lg">
+    <div role="alert" className="rounded-2xl bg-danger text-white p-5 sm:p-6">
       <div className="flex items-start gap-3">
-        <span className="text-2xl flex-shrink-0" aria-hidden>🚨</span>
+        <AlertIcon className="w-8 h-8 mt-0.5" />
         <div>
-          <p className="font-bold text-lg leading-tight">Emergency — Go to hospital now</p>
-          <p className="mt-1 text-red-100 text-sm">{message}</p>
-          <p className="mt-2 text-white text-sm font-medium">
-            Go to the nearest hospital or general hospital emergency department immediately.
-            Do not wait.
-          </p>
+          <p className="text-sm font-bold uppercase tracking-wider">Emergency</p>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold">Go to hospital now</h1>
+          {message && <p className="mt-2 text-base">{message}</p>}
+          <p className="mt-2 text-base font-semibold">Do not wait to see if it gets better.</p>
         </div>
       </div>
     </div>

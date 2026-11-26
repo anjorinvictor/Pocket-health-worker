@@ -1,9 +1,8 @@
 /**
- * Pocket Health Worker — Chat Window Viewport
+ * Pocket Health Worker — Chat window
  *
- * Implements the scrollable chat turn container. Manages scroll-to-bottom synchronization 
- * to ensure newly received questions or responses are immediately brought into visual focus.
- * Serves as the central dialogue thread during intermediate symptoms collection (SDG 3 access core).
+ * Scrollable conversation. New messages are announced politely to screen readers
+ * and scrolled into view.
  */
 
 "use client";
@@ -21,36 +20,32 @@ export default function ChatWindow({ history, loading }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [history, loading]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-      {history.length === 0 && (
-        <div className="flex justify-start animate-fade-in">
-          <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-white border border-slate-100/80 px-4 py-3.5 text-sm text-slate-700 shadow-sm leading-relaxed">
-            🌿 Hello! I'm your Pocket Health Worker. Please describe what symptoms you are 
-            experiencing, and I'll help you assess how urgent they are and guide you to the correct local facility.
+    <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">Tell me what&rsquo;s wrong</h1>
+        <p className="text-muted">
+          Describe how you or the person you care for feels, in your own words. I&rsquo;ll ask a few short
+          questions, then tell you how urgent it is and where to go.
+        </p>
+      </div>
+
+      <div role="log" aria-live="polite" aria-label="Conversation" className="space-y-4">
+        {history.map((turn, i) => (
+          <MessageBubble key={i} turn={turn} />
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <p className="rounded-2xl rounded-bl-sm bg-sand px-4 py-3 text-muted">
+              Checking your answers<span aria-hidden>…</span>
+            </p>
           </div>
-        </div>
-      )}
-      
-      {history.map((turn, i) => (
-        <MessageBubble key={i} turn={turn} />
-      ))}
-      
-      {loading && (
-        <div className="flex justify-start animate-pulse">
-          <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-sm px-4 py-3.5 shadow-sm">
-            <span className="flex gap-1.5 items-center">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:0ms]" />
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:150ms]" />
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:300ms]" />
-            </span>
-          </div>
-        </div>
-      )}
-      
+        )}
+      </div>
+
       <div ref={bottomRef} />
     </div>
   );

@@ -14,7 +14,7 @@
  *    BEFORE it ever calls the network, so this route simply fails fast and clean.
  */
 
-const CACHE_NAME = 'phw-cache-v2';
+const CACHE_NAME = 'phw-cache-v3';
 
 // Assets we know exist at build time. Next.js content-hashed chunks under
 // /_next/static are cached lazily on first load (see stale-while-revalidate below).
