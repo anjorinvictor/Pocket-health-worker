@@ -378,7 +378,7 @@ export default function Home() {
             aria-label={t("brandAria")}
           >
             <Logo className="w-10 h-10 shrink-0" />
-            <span className="font-serif text-lg font-bold leading-tight hidden min-[380px]:block">Pocket Health Worker</span>
+            <span className="font-serif text-lg font-bold leading-tight hidden sm:block">Pocket Health Worker</span>
           </button>
           <div className="flex items-center gap-2">
             <LanguageToggle onChange={setLang} />

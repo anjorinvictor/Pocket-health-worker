@@ -28,7 +28,7 @@ export default function DataSaverToggle({ on, onChange, variant = "row" }: Props
         role="switch"
         aria-checked={on}
         onClick={() => onChange(!on)}
-        className="btn btn-on-dark rounded-full px-3.5 text-sm"
+        className="btn btn-on-dark rounded-full px-3.5 text-sm whitespace-nowrap"
       >
         <span aria-hidden className={`w-2.5 h-2.5 rounded-full ${on ? "bg-espresso" : "border border-cream"}`} />
         {on ? t("dataSaverOn") : t("dataSaverOff")}
