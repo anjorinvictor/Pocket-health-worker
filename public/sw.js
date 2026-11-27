@@ -7,14 +7,15 @@
  *    so after ONE online load the whole UI keeps working with NO network: the body map,
  *    the offline deterministic triage engine, the 12-state PHC directory, and the
  *    emergency bridge are all client-side, so nothing else needs to be fetched.
- *  - Page navigations fall back to the cached app shell ("/"), so an offline refresh
+ *  - Page navigations are network-first (4 s timeout) so updates show on the next open, and
+ *    fall back to the cached page or app shell ("/"), so an offline refresh
  *    still boots the app.
  *  - The Gemini triage API is NEVER cached — it is network-only so we never serve a
  *    stale AI answer. When offline the client falls back to the deterministic engine
  *    BEFORE it ever calls the network, so this route simply fails fast and clean.
  */
 
-const CACHE_NAME = 'phw-cache-v4';
+const CACHE_NAME = 'phw-cache-v5';
 
 // Assets we know exist at build time. Next.js content-hashed chunks under
 // /_next/static are cached lazily on first load (see stale-while-revalidate below).
@@ -60,6 +61,40 @@ function staleWhileRevalidate(request) {
   });
 }
 
+// Network first with a short timeout; falls back to the cached copy.
+function networkFirst(request, timeoutMs = 4000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const fallback = () =>
+      caches.match(request).then((cached) => cached || caches.match('/')).then((r) => (r ? resolve(r) : reject()));
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        fallback();
+      }
+    }, timeoutMs);
+    fetch(request)
+      .then((response) => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(response);
+        }
+      })
+      .catch(() => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          fallback();
+        }
+      });
+  });
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -83,13 +118,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Page navigations — serve the app shell so an offline refresh still boots.
+  // 2. Page navigations — network first, so an update is seen on the next open;
+  //    the cached page (or the app shell) after 4 s or with no network, so an
+  //    offline or weak-signal refresh still boots.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      staleWhileRevalidate(request)
-        .then((response) => response || caches.match('/'))
-        .catch(() => caches.match('/'))
-    );
+    event.respondWith(networkFirst(request).catch(() => caches.match('/')));
     return;
   }
 
