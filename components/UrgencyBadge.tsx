@@ -28,7 +28,7 @@ export default function UrgencyBadge({ level }: { level: UrgencyLevel }) {
   const { classes, Icon } = CONFIG[level];
   const label = t(`urgency${level}`);
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-bold ${classes}`}>
+    <span className={`badge-pop inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-bold ${classes}`}>
       <Icon className="w-4 h-4" />
       {label}
     </span>

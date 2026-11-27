@@ -34,7 +34,7 @@ export default function ResultCard({ result, history, handover, onReset, onConti
   const headline = result.urgencyLevel === "GREEN" ? t("headlineGREEN") : t("headlineYELLOW");
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 stagger">
       {isRed && (
         <>
           <EmergencyBanner />

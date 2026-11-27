@@ -11,9 +11,9 @@ import { AlertIcon } from "./Icons";
 export default function EmergencyBanner({ message }: { message?: string }) {
   const { t, tx } = useI18n();
   return (
-    <div role="alert" className="rounded-2xl bg-danger text-white p-5 sm:p-6">
+    <div role="alert" className="rounded-2xl bg-danger text-white p-5 sm:p-6 slide-down">
       <div className="flex items-start gap-3">
-        <AlertIcon className="w-8 h-8 mt-0.5" />
+        <AlertIcon className="w-8 h-8 mt-0.5 shrink-0 throb" />
         <div>
           <p className="text-sm font-bold uppercase tracking-wider">{t("emergencyEyebrow")}</p>
           <h1 className="mt-1 text-2xl sm:text-3xl font-bold">{t("emergencyTitle")}</h1>

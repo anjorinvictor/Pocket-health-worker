@@ -1,5 +1,14 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="120" fill="#1c1412" />
-  <rect x="96" y="96" width="320" height="320" rx="80" fill="#ad4a2b" />
-  <text x="50%" y="54%" font-family="Georgia, serif" font-weight="700" font-size="220" fill="#f6f2eb" text-anchor="middle" dominant-baseline="middle">P</text>
+  <g fill="#ad4a2b">
+    <rect x="196" y="96" width="120" height="320" rx="30" />
+    <rect x="96" y="196" width="320" height="120" rx="30" />
+  </g>
+  <polyline points="118,256 198,256 226,204 262,318 294,232 314,256 394,256" fill="none" stroke="#f6f2eb" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="118" cy="256" r="17" fill="#e58a5f" />
+  <circle cx="394" cy="256" r="17" fill="#e58a5f" />
+  <g fill="none" stroke="#e58a5f" stroke-width="18" stroke-linecap="round">
+    <path d="M352 120 a46 46 0 0 1 40 40" />
+    <path d="M354 76 a90 90 0 0 1 82 82" />
+  </g>
 </svg>

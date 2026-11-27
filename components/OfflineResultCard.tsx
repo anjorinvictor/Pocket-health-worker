@@ -40,7 +40,7 @@ export default function OfflineResultCard({ result, reason, handover, onReset }:
   const why = REASON[reason];
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5 stagger">
       {isRed && (
         <>
           <EmergencyBanner />

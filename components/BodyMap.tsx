@@ -175,7 +175,7 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
       onMouseEnter: () => setHovered(r),
       onMouseLeave: () => setHovered(null),
       style: { fill: c.fill, stroke: c.stroke, strokeWidth: c.width, cursor: "pointer", outline: "none" },
-      className: "focus-visible:[stroke:var(--color-ink)] focus-visible:[stroke-width:3]",
+      className: "bm-region focus-visible:[stroke:var(--color-ink)] focus-visible:[stroke-width:3]",
     } as const;
   };
 
@@ -197,9 +197,28 @@ Patient Disclosures: ${extra.trim() || "None provided."}`;
         </button>
       </div>
 
-      <h1 className="text-3xl sm:text-4xl font-bold mb-6">{t("whereHurts")}</h1>
+      <h1 className="text-3xl sm:text-4xl font-bold mb-3">{t("whereHurts")}</h1>
+      {/* Progress through the 5 required answers. */}
+      <div className="mb-6 max-w-md">
+        <div className="flex justify-between text-sm font-semibold text-muted mb-1.5">
+          <span id="bm-progress">{t("progressN", { n: 5 - missing.length })}</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-labelledby="bm-progress"
+          aria-valuemin={0}
+          aria-valuemax={5}
+          aria-valuenow={5 - missing.length}
+          className="h-2.5 rounded-full bg-sand overflow-hidden"
+        >
+          <div
+            className={`meter-fill h-full rounded-full ${isValid ? "bg-home" : "bg-rust"}`}
+            style={{ width: `${((5 - missing.length) / 5) * 100}%` }}
+          />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start stagger">
         {/* Step 1 — diagram */}
         <section aria-labelledby="step1" className="lg:col-span-5 card p-5 sm:p-6 space-y-5 lg:sticky lg:top-20">
           <div>

@@ -37,9 +37,14 @@ export default function ChatWindow({ history, loading }: Props) {
           <MessageBubble key={i} turn={turn} />
         ))}
         {loading && (
-          <div className="flex justify-start">
+          <div className="flex justify-start bubble-in-left">
             <p className="rounded-2xl rounded-bl-sm bg-sand px-4 py-3 text-muted">
-              {t("chatChecking")}<span aria-hidden>…</span>
+              {t("chatChecking")}
+              <span aria-hidden className="ml-1">
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </span>
             </p>
           </div>
         )}

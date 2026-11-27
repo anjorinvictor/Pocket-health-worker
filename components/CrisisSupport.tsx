@@ -17,7 +17,7 @@ export default function CrisisSupport({ onReset }: { onReset: () => void }) {
   const [first, ...rest] = MENTAL_HEALTH_LINES;
 
   return (
-    <div className="mx-auto max-w-xl space-y-5 animate-fade-in">
+    <div className="mx-auto max-w-xl space-y-5 stagger">
       <section className="card p-6 sm:p-8 space-y-4" aria-labelledby="crisis-title">
         <h1 id="crisis-title" className="text-3xl font-bold">{t("crisisTitle")}</h1>
         <p className="text-lg">{t("crisisBody1")}</p>

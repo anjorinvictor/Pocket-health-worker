@@ -27,6 +27,8 @@ import DataSaverToggle from "@/components/DataSaverToggle";
 import BodyMap from "@/components/BodyMap";
 import NafdacCheck from "@/components/NafdacCheck";
 import NurseCard from "@/components/NurseCard";
+import Logo from "@/components/Logo";
+import ResponderAlert from "@/components/ResponderAlert";
 import LanguageToggle from "@/components/LanguageToggle";
 import { LangProvider, makeI18n, type Lang } from "@/lib/i18n";
 import { ArrowLeftIcon, HomeIcon, WifiOffIcon } from "@/components/Icons";
@@ -49,6 +51,10 @@ type AppState =
 
 /** Weak signal must not leave a scared parent waiting forever. */
 const REQUEST_TIMEOUT_MS = 25000;
+
+function subscribeNever() {
+  return () => {};
+}
 
 function subscribeOnline(cb: () => void) {
   window.addEventListener("online", cb);
@@ -112,6 +118,12 @@ export default function Home() {
   const isOffline = useSyncExternalStore(
     subscribeOnline,
     () => !navigator.onLine,
+    () => false
+  );
+  /** Pitch demo only: "?demo=1" shows the clinic-alert prototype. Never shown otherwise. */
+  const demoMode = useSyncExternalStore(
+    subscribeNever,
+    () => new URLSearchParams(window.location.search).has("demo"),
     () => false
   );
 
@@ -365,9 +377,7 @@ export default function Home() {
             className="flex items-center gap-2.5 min-h-12 cursor-pointer text-left"
             aria-label={t("brandAria")}
           >
-            <span aria-hidden className="w-9 h-9 rounded-xl bg-rust flex items-center justify-center font-serif font-bold text-cream">
-              P
-            </span>
+            <Logo className="w-10 h-10 shrink-0" />
             <span className="font-serif text-lg font-bold leading-tight hidden min-[380px]:block">Pocket Health Worker</span>
           </button>
           <div className="flex items-center gap-2">
@@ -412,7 +422,7 @@ export default function Home() {
         {appState.screen === "crisis" && <CrisisSupport onReset={reset} />}
 
         {appState.screen === "medicine" && (
-          <div className="mx-auto max-w-xl space-y-5 animate-fade-in">
+          <div className="mx-auto max-w-xl space-y-5 stagger">
             <button type="button" onClick={reset} className="btn btn-secondary">
               <ArrowLeftIcon /> {t("back")}
             </button>
@@ -428,7 +438,7 @@ export default function Home() {
         )}
 
         {appState.screen === "emergency" && (
-          <div className="mx-auto max-w-xl space-y-4 animate-fade-in">
+          <div className="mx-auto max-w-xl space-y-4 stagger">
             <EmergencyBanner message={appState.message} />
             {appState.local && (
               <p className="text-sm text-muted">{isOffline ? t("emergencyLocalOffline") : t("emergencyLocal")}</p>
@@ -436,6 +446,7 @@ export default function Home() {
             <EmergencyActions selectedState={userState} onStateChange={setUserState} sign={appState.sign}>
               <EmergencyExplanation state={explain} />
             </EmergencyActions>
+            {demoMode && <ResponderAlert finding={appState.message} sign={appState.sign} info={handover} />}
             <NurseCard
               info={handover}
               urgency="RED"

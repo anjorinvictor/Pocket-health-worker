@@ -32,7 +32,7 @@ export default function EmergencyActions({ selectedState, onStateChange, sign, c
     <div className="space-y-4">
       <section aria-labelledby="call-now" className="card p-5 space-y-3">
         <h2 id="call-now" className="text-xl font-bold">{t("callForHelp")}</h2>
-        <a href={`tel:${NATIONAL_EMERGENCY.tel}`} className="btn btn-danger w-full text-lg min-h-14">
+        <a href={`tel:${NATIONAL_EMERGENCY.tel}`} className="btn btn-danger w-full text-lg min-h-14 pulse-ring">
           <PhoneIcon className="w-6 h-6" /> {t("callN", { n: NATIONAL_EMERGENCY.display })}
         </a>
         <p className="text-sm text-muted text-center">{t("nationalNote")}</p>

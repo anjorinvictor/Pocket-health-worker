@@ -30,7 +30,7 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick, onLangChang
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start animate-fade-in">
       {/* Start */}
-      <section className="lg:col-span-7 space-y-6 lg:pt-6" aria-labelledby="welcome-title">
+      <section className="lg:col-span-7 space-y-6 lg:pt-6 stagger" aria-labelledby="welcome-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="eyebrow">{t("welcomeEyebrow")}</p>
           <LanguageToggle variant="choice" onChange={onLangChange} />
@@ -38,13 +38,27 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick, onLangChang
         <h1 id="welcome-title" className="text-4xl sm:text-5xl font-bold text-ink">
           {t("welcomeTitle")}
         </h1>
+        {/* Heart-monitor line (decorative). */}
+        <svg viewBox="0 0 600 60" className="w-full max-w-xl h-10 sm:h-12 -mt-2" aria-hidden="true" focusable="false">
+          <line x1="0" y1="30" x2="600" y2="30" stroke="var(--color-line)" strokeWidth="2" />
+          <polyline
+            className="ecg-line"
+            pathLength={100}
+            points="0,30 150,30 170,30 185,12 200,48 215,4 232,56 248,30 330,30 345,22 360,30 600,30"
+            fill="none"
+            stroke="var(--color-rust)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <p className="text-lg text-muted max-w-xl">{t("welcomeIntro")}</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 stagger">
           <button
             type="button"
             onClick={() => onSelectMode("chat")}
-            className="btn btn-primary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3"
+            className="btn btn-primary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3 lift"
           >
             <ChatIcon />
             <span>
@@ -55,7 +69,7 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick, onLangChang
           <button
             type="button"
             onClick={() => onSelectMode("bodymap")}
-            className="btn btn-secondary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3"
+            className="btn btn-secondary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3 lift"
           >
             <BodyIcon className="w-6 h-6 text-rust" />
             <span>
@@ -66,7 +80,7 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick, onLangChang
           <button
             type="button"
             onClick={() => onSelectMode("medicine")}
-            className="btn btn-secondary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3"
+            className="btn btn-secondary justify-start md:flex-col md:items-start text-left min-h-20 px-5 py-4 gap-3 lift"
           >
             <PillIcon className="w-6 h-6 text-rust" />
             <span>
@@ -84,10 +98,10 @@ export default function WelcomeScreen({ onSelectMode, onCrisisClick, onLangChang
       </section>
 
       {/* What you get + promise */}
-      <aside className="on-dark lg:col-span-5 rounded-3xl bg-espresso text-cream p-6 sm:p-8 space-y-7">
+      <aside className="on-dark lg:col-span-5 rounded-3xl bg-espresso text-cream p-6 sm:p-8 space-y-7 slide-in-right">
         <section aria-labelledby="levels-title" className="space-y-4">
           <h2 id="levels-title" className="text-2xl font-bold">{t("levelsTitle")}</h2>
-          <ul className="space-y-4">
+          <ul className="space-y-4 stagger">
             <li className="space-y-1.5">
               <UrgencyBadge level="GREEN" />
               <p className="text-on-dark-muted">{t("levelGREEN")}</p>
